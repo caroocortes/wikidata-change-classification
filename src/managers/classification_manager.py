@@ -92,39 +92,46 @@ class ClassificationManager:
         total_time_sql = time.time() - start_time_sql
         logging.info(f'SQL-based typo classification took: {total_time_sql} seconds')
 
-        start_time_wordnet = time.time()
-        query_typo_errors = """
-            SELECT revision_id, property_id, value_id, change_target, old_value, new_value, typo, typo_correction, typo_introduction
-            FROM {change_table}
-            WHERE typo = TRUE AND typo_correction = FALSE AND typo_introduction = FALSE
-        """.format(change_table=self.table_names['change_table'])
-        df = self.sql_runner.query_to_df(query_typo_errors)
+        # start_time_wordnet = time.time()
+        # query_typo_errors = """
+        #     SELECT revision_id, property_id, value_id, change_target, old_value, new_value, typo, typo_correction, typo_introduction
+        #     FROM {change_table}
+        #     WHERE typo = TRUE AND typo_correction = FALSE AND typo_introduction = FALSE
+        # """.format(change_table=self.table_names['change_table'])
+        # df = self.sql_runner.query_to_df(query_typo_errors)
 
-        print('Number of changes to check for typo intent:', len(df.index))
+        # print('Number of changes to check for typo intent:', len(df.index))
 
         # Do introduction/correction of typo
-        df[['typo_correction', 'typo_introduction']] = df.apply(self.classify_typo_intent, axis=1)
+        # df[['typo_correction', 'typo_introduction']] = df.apply(self.classify_typo_intent, axis=1)
 
-        # Update DB
-        typo_correction_values = list(df[["typo_correction", "revision_id", "property_id", "value_id", "change_target"]].itertuples(index=False, name=None))
-        query = """
-            UPDATE {change_table}
-            SET typo_correction = %s
-            WHERE revision_id = %s AND property_id = %s AND value_id = %s AND change_target = %s
-        """.format(change_table=self.table_names['change_table'])
-        self.sql_runner.execute_many(query, typo_correction_values)
+        # # Update DB
+        # typo_correction_values = list(df[["typo_correction", "revision_id", "property_id", "value_id", "change_target"]].itertuples(index=False, name=None))
+        # query = """
+        #     UPDATE {change_table}
+        #     SET typo_correction = %s
+        #     WHERE revision_id = %s AND property_id = %s AND value_id = %s AND change_target = %s
+        # """.format(change_table=self.table_names['change_table'])
+        # self.sql_runner.execute_many(query, typo_correction_values)
 
-        # Update DB
-        typo_introduction_values = list(df[["typo_introduction", "revision_id", "property_id", "value_id", "change_target"]].itertuples(index=False, name=None))
-        query = """
-            UPDATE {change_table}
-            SET typo_introduction = %s
-            WHERE revision_id = %s AND property_id = %s AND value_id = %s AND change_target = %s
-        """.format(change_table=self.table_names['change_table'])
-        self.sql_runner.execute_many(query, typo_introduction_values)
+        # # Update DB
+        # typo_introduction_values = list(df[["typo_introduction", "revision_id", "property_id", "value_id", "change_target"]].itertuples(index=False, name=None))
+        # query = """
+        #     UPDATE {change_table}
+        #     SET typo_introduction = %s
+        #     WHERE revision_id = %s AND property_id = %s AND value_id = %s AND change_target = %s
+        # """.format(change_table=self.table_names['change_table'])
+        # self.sql_runner.execute_many(query, typo_introduction_values)
 
-        total_time_wordnet = time.time() - start_time_wordnet
-        logging.info(f'Wordnet-based typo classification took: {total_time_wordnet} seconds')
+        # total_time_wordnet = time.time() - start_time_wordnet
+        # logging.info(f'Wordnet-based typo classification took: {total_time_wordnet} seconds')
+
+        # TODO: 
+        # maybe need to keep the last value and compare it? or do some similarity check?
+        # duplicated characters inmediate -> WHERE word ~ '(\w)\1';
+        # characters that shouldn't go together in english (e.g. spanxish shouldn't be correct )
+        # use spellchecker. or pip install jamspell
+        # plural -> should be ok?
 
         total_time = time.time() - start_time
         logging.info(f'Finished typo classification. Took {total_time} seconds')
@@ -146,6 +153,6 @@ class ClassificationManager:
         logging.info(f'Finished value refinement classification. Took {total_time} seconds')
 
     def run_classification(self):
-        # self.run_formatting_classification()
+        self.run_formatting_classification()
         self.run_typo_classification()
         self.run_value_refinement_classification()
