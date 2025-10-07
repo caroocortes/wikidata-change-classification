@@ -28,7 +28,7 @@ WITH value_refinement_metrics_string AS (
     WHERE 
         action = 'UPDATE' AND 
         target = 'PROPERTY_VALUE' AND
-        vandalism = FALSE
+        reverted_edit = FALSE AND reversion = FALSE
 )
 UPDATE :change c
 SET value_refinement = TRUE

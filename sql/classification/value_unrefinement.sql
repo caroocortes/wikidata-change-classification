@@ -16,7 +16,7 @@ WITH value_unrefinement_metrics_string AS (
     
     -- Containment check
     CASE 
-        WHEN (new_value->>0) LIKE '%' || (old_value->>0) || '%' THEN 1 
+        WHEN (old_value->>0) LIKE '%' || (new_value->>0) || '%' THEN 1 
         ELSE 0 
     END as new_value_contained,
     
@@ -27,13 +27,15 @@ WITH value_unrefinement_metrics_string AS (
     WHERE 
         action = 'UPDATE' AND 
         target = 'PROPERTY_VALUE' AND
-        vandalism = FALSE
+        reverted_edit = FALSE AND reversion = FALSE AND
+		typo = FALSE AND formatting = FALSE
 )
 UPDATE :change c
-SET unvalue_refinement = TRUE
+SET value_unrefinement = TRUE
 FROM value_unrefinement_metrics_string vrm
 WHERE 
 reverted_edit = FALSE AND reversion = FALSE AND
+typo = FALSE AND formatting = FALSE AND
 c.action = 'UPDATE' AND 
 c.target = 'PROPERTY_VALUE' AND
 c.revision_id = vrm.revision_id AND 
@@ -47,51 +49,6 @@ AND
         new_value_contained > 0 AND -- new value is contained because this is unrefinement
         length_decrease > 0 AND 
         word_decrease > 0
-    )
-    OR
-    ( -- time type
-        datatype = 'time' AND
-        ( 
-            -- with the OR there can be both types of refinement
-            --  NOTE: a case like 2025-00-01T00:00:00Z -> 2025-02-00T00:12:59Z is considered a refinement
-            (
-                -- date unrefinement
-                (
-                    LENGTH(REGEXP_REPLACE(SPLIT_PART(new_value->>0, 'T', 1), '[\+\-]|00', '', 'g')) < 
-                    LENGTH(REGEXP_REPLACE(SPLIT_PART(old_value->>0, 'T', 1), '[\+\-]|00', '', 'g'))
-                )
-                AND 
-                ( -- there was a time unrefinement, or the length stayed the same, but it didn't increase (refinement)
-                    LENGTH(REGEXP_REPLACE(SPLIT_PART(new_value->>0, 'T', 2), '00|:|Z', '', 'g')) <=
-                    LENGTH(REGEXP_REPLACE(SPLIT_PART(old_value->>0, 'T', 2), '00|:|Z', '', 'g')) 
-                )
-                AND 
-                ( -- something stayed the same
-                    SPLIT_PART(SPLIT_PART(new_value->>0, 'T', 1), '-', 1) = SPLIT_PART(SPLIT_PART(old_value->>0, 'T', 1), '-', 1) OR -- year
-                    SPLIT_PART(SPLIT_PART(new_value->>0, 'T', 1), '-', 2) = SPLIT_PART(SPLIT_PART(old_value->>0, 'T', 1), '-', 2) OR -- month
-                    SPLIT_PART(SPLIT_PART(new_value->>0, 'T', 1), '-', 3) = SPLIT_PART(SPLIT_PART(old_value->>0, 'T', 1), '-', 3 ) -- day
-                )
-                
-            )
-            OR 
-            (   -- time unrefinement
-                (
-                    LENGTH(REGEXP_REPLACE(SPLIT_PART(new_value->>0, 'T', 2), '00|:|Z', '', 'g')) <
-                    LENGTH(REGEXP_REPLACE(SPLIT_PART(old_value->>0, 'T', 2), '00|:|Z', '', 'g')) 
-                )
-                AND
-                ( -- there was a date unrefinement, or the length stayed the same, but it didn't increase (un-refinement)
-                    LENGTH(REGEXP_REPLACE(SPLIT_PART(new_value->>0, 'T', 1), '[\+\-]|00', '', 'g')) <= 
-                    LENGTH(REGEXP_REPLACE(SPLIT_PART(old_value->>0, 'T', 1), '[\+\-]|00', '', 'g'))
-                )
-                AND 
-                ( -- something stayed the same
-                    SPLIT_PART(SPLIT_PART(new_value->>0, 'T', 2), ':', 1) = SPLIT_PART(SPLIT_PART(old_value->>0, 'T', 2), ':', 1) OR -- year
-                    SPLIT_PART(SPLIT_PART(new_value->>0, 'T', 2), ':', 2) = SPLIT_PART(SPLIT_PART(old_value->>0, 'T', 2), ':', 2) OR -- month
-                    SPLIT_PART(SPLIT_PART(new_value->>0, 'T', 2), ':', 3) = SPLIT_PART(SPLIT_PART(old_value->>0, 'T', 2), ':', 3 ) -- day
-                )
-            )
-        )
     )
     OR 
     -- numeric & globe coordinate
@@ -115,4 +72,42 @@ AND
         -- SPLIT_PART(value, '.', 2) returns the value after the '.'
         LENGTH(SPLIT_PART(REGEXP_REPLACE(new_value->>0, '[,]', '.', 'g'), '.', 2)) < LENGTH(SPLIT_PART(REGEXP_REPLACE(old_value->>0, '[,]', '.', 'g'), '.', 2)) 
     )
-)
+);
+
+
+--- time unrefinement
+UPDATE :change c
+SET value_unrefinement = TRUE
+WHERE
+typo = FALSE AND formatting = FALSE AND
+datatype = 'time' AND
+reverted_edit = FALSE AND reversion = FALSE AND
+c.action = 'UPDATE' AND 
+c.target = 'PROPERTY_VALUE' AND
+(
+    (
+        -- DATE unrefinement: less specific date
+        (
+            -- the new date has more zero components
+            LENGTH(REGEXP_REPLACE(REGEXP_REPLACE(SPLIT_PART(new_value->>0, 'T', 1), '^[-+]', ''), '-00', '', 'g'))
+            <
+            LENGTH(REGEXP_REPLACE(REGEXP_REPLACE(SPLIT_PART(old_value->>0, 'T', 1), '^[-+]', ''), '-00', '', 'g'))
+        )
+        AND -- and new value is contained in old value, so it's "smaller"
+        REGEXP_REPLACE(REGEXP_REPLACE(SPLIT_PART(old_value->>0, 'T', 1), '^[-+]', ''), '-00', '', 'g')::text ILIKE
+    '%' || REGEXP_REPLACE(REGEXP_REPLACE(SPLIT_PART(new_value->>0, 'T', 1), '^[-+]', ''), '-00', '', 'g')::text || '%'
+    )
+    OR
+    (
+        -- TIME unrefinement: less precise time
+        (
+            -- the new time has more zero components
+            LENGTH(REGEXP_REPLACE(REGEXP_REPLACE(SPLIT_PART(new_value->>0, 'T', 2), 'Z', ''), '(:|00)', '', 'g'))
+            <
+            LENGTH(REGEXP_REPLACE(REGEXP_REPLACE(SPLIT_PART(old_value->>0, 'T', 2), 'Z', ''), '(:|00)', '', 'g'))
+        )
+        AND -- and new value is contained in old value, so it's "smaller"
+        REGEXP_REPLACE(REGEXP_REPLACE(SPLIT_PART(old_value->>0, 'T', 2), 'Z', ''), '(:|00)', '', 'g')::text ILIKE
+    '%' || REGEXP_REPLACE(REGEXP_REPLACE(SPLIT_PART(new_value->>0, 'T', 2), 'Z', ''), '(:|00)', '', 'g')::text || '%'
+    )
+);
