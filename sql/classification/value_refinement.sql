@@ -34,6 +34,7 @@ UPDATE :change c
 SET value_refinement = TRUE
 FROM value_refinement_metrics_string vrm
 WHERE 
+typo = FALSE AND formatting = FALSE AND
 reverted_edit = FALSE AND reversion = FALSE AND
 c.action = 'UPDATE' AND 
 c.target = 'PROPERTY_VALUE' AND
@@ -43,7 +44,7 @@ c.value_id = vrm.value_id AND
 c.change_target = vrm.change_target
 AND
 (
-    -- TODO: consider labels for entities and treat them as strings
+
     ( -- string types
         datatype IN ('monolingualtext', 'string', 'external-id', 'url', 'commonsMedia', 'geo-shape', 'tabular-data', 'math', 'musical-notation') AND 
         old_value_contained > 0 AND 
@@ -51,7 +52,6 @@ AND
         word_increase > 0
     )
     OR (-- for entity values I consider the label of the entity 
-        -- not sure if it will work for the things like lexemes, etc.
         datatype IN ('wikibase-item', 'wikibase-entityid','wikibase-property','wikibase-lexeme','wikibase-sense','wikibase-form')
         AND 
         (new_value_label->>0) LIKE '%' || (old_value_label->>0) || '%' > 0 AND  -- old value is contained
@@ -59,51 +59,6 @@ AND
         AND 
         array_length(string_to_array(new_value_label->>0, ' '), 1) - 
         array_length(string_to_array(old_value_label->>0, ' '), 1) > 0 -- characeter increase
-    )
-    OR
-    ( -- time type
-        datatype = 'time' AND
-        ( 
-            -- with the OR there can be both types of refinement
-            --  NOTE: a case like 2025-00-01T00:00:00Z -> 2025-02-00T00:12:59Z is considered a refinement
-            (
-                -- date refinement
-                (
-                    LENGTH(REGEXP_REPLACE(SPLIT_PART(new_value->>0, 'T', 1), '[\+\-]|00', '', 'g')) > 
-                    LENGTH(REGEXP_REPLACE(SPLIT_PART(old_value->>0, 'T', 1), '[\+\-]|00', '', 'g'))
-                )
-                AND 
-                ( -- there was a time refinement, or the length stayed the same, but it didn't decrease (un-refinement)
-                    LENGTH(REGEXP_REPLACE(SPLIT_PART(new_value->>0, 'T', 2), '00|:|Z', '', 'g')) >=
-                    LENGTH(REGEXP_REPLACE(SPLIT_PART(old_value->>0, 'T', 2), '00|:|Z', '', 'g')) 
-                )
-                AND 
-                ( -- something stayed the same
-                    SPLIT_PART(SPLIT_PART(new_value->>0, 'T', 1), '-', 1) = SPLIT_PART(SPLIT_PART(old_value->>0, 'T', 1), '-', 1) OR -- year
-                    SPLIT_PART(SPLIT_PART(new_value->>0, 'T', 1), '-', 2) = SPLIT_PART(SPLIT_PART(old_value->>0, 'T', 1), '-', 2) OR -- month
-                    SPLIT_PART(SPLIT_PART(new_value->>0, 'T', 1), '-', 3) = SPLIT_PART(SPLIT_PART(old_value->>0, 'T', 1), '-', 3 ) -- day
-                )
-                -- there's only a check on the length but the value could have changed
-            )
-            OR 
-            (   -- time refinement
-                (
-                    LENGTH(REGEXP_REPLACE(SPLIT_PART(new_value->>0, 'T', 2), '00|:|Z', '', 'g')) >
-                    LENGTH(REGEXP_REPLACE(SPLIT_PART(old_value->>0, 'T', 2), '00|:|Z', '', 'g')) 
-                )
-                AND
-                ( -- there was a date refinement, or the length stayed the same, but it didn't decrease (un-refinement)
-                    LENGTH(REGEXP_REPLACE(SPLIT_PART(new_value->>0, 'T', 1), '[\+\-]|00', '', 'g')) >= 
-                    LENGTH(REGEXP_REPLACE(SPLIT_PART(old_value->>0, 'T', 1), '[\+\-]|00', '', 'g'))
-                )
-                AND 
-                ( -- something stayed the same
-                    SPLIT_PART(SPLIT_PART(new_value->>0, 'T', 2), ':', 1) = SPLIT_PART(SPLIT_PART(old_value->>0, 'T', 2), ':', 1) OR -- year
-                    SPLIT_PART(SPLIT_PART(new_value->>0, 'T', 2), ':', 2) = SPLIT_PART(SPLIT_PART(old_value->>0, 'T', 2), ':', 2) OR -- month
-                    SPLIT_PART(SPLIT_PART(new_value->>0, 'T', 2), ':', 3) = SPLIT_PART(SPLIT_PART(old_value->>0, 'T', 2), ':', 3 ) -- day
-                )
-            )
-        )
     )
     OR 
     -- numeric & globe coordinate
@@ -127,4 +82,41 @@ AND
         -- SPLIT_PART(value, '.', 2) returns the value after the '.'
         LENGTH(SPLIT_PART(REGEXP_REPLACE(new_value->>0, '[,]', '.', 'g'), '.', 2)) > LENGTH(SPLIT_PART(REGEXP_REPLACE(old_value->>0, '[,]', '.', 'g'), '.', 2)) 
     )
-)
+);
+
+--- time refinement
+UPDATE :change c
+SET value_refinement = TRUE
+WHERE
+typo = FALSE AND formatting = FALSE AND
+datatype = 'time' AND
+reverted_edit = FALSE AND reversion = FALSE AND
+c.action = 'UPDATE' AND 
+c.target = 'PROPERTY_VALUE' AND
+(
+    (
+        -- DATE refinement: more specific date
+        (
+            -- the new date has more non-zero components
+            LENGTH(REGEXP_REPLACE(REGEXP_REPLACE(SPLIT_PART(new_value->>0, 'T', 1), '^[-+]', ''), '-00', '', 'g'))
+            >
+            LENGTH(REGEXP_REPLACE(REGEXP_REPLACE(SPLIT_PART(old_value->>0, 'T', 1), '^[-+]', ''), '-00', '', 'g'))
+        )
+        AND -- and some part is still contained
+        REGEXP_REPLACE(REGEXP_REPLACE(SPLIT_PART(new_value->>0, 'T', 1), '^[-+]', ''), '-00', '', 'g')::text ILIKE
+    '%' || REGEXP_REPLACE(REGEXP_REPLACE(SPLIT_PART(old_value->>0, 'T', 1), '^[-+]', ''), '-00', '', 'g')::text || '%'
+    )
+    OR
+    (
+        -- TIME refinement: more precise time
+        (
+            -- the new time has more non-zero components
+            LENGTH(REGEXP_REPLACE(REGEXP_REPLACE(SPLIT_PART(new_value->>0, 'T', 2), 'Z', ''), '(:|00)', '', 'g'))
+            >
+            LENGTH(REGEXP_REPLACE(REGEXP_REPLACE(SPLIT_PART(old_value->>0, 'T', 2), 'Z', ''), '(:|00)', '', 'g'))
+        )
+        AND -- and some part is still contained
+        REGEXP_REPLACE(REGEXP_REPLACE(SPLIT_PART(new_value->>0, 'T', 2), 'Z', ''), '(:|00)', '', 'g')::text ILIKE
+    '%' || REGEXP_REPLACE(REGEXP_REPLACE(SPLIT_PART(old_value->>0, 'T', 2), 'Z', ''), '(:|00)', '', 'g')::text || '%'
+    )
+);
