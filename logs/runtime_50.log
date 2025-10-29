@@ -1,0 +1,14 @@
+2025-10-14 13:38:52,865 [INFO] Running change classification: 23,421,049 changes, 16,423,250 revisions, 50 files, 131,075 entities.
+2025-10-14 13:49:17,472 [INFO] Finished reverted edit classification. Took 624.6038300991058 seconds. Affected 21,845 rows
+2025-10-14 13:51:13,124 [INFO] Finished formatting classification. Took 115.64942693710327 seconds. Affected 130,592 rows
+2025-10-14 13:52:26,242 [INFO] Finished typo classification. Took 73.11514806747437 seconds. Affected 2,749 rows
+2025-10-14 20:36:10,219 [INFO] Finished value refinement classification. Took 727.9274549484253 seconds. Affected 2,984 rows
+2025-10-14 20:46:56,598 [INFO] Finished value unrefinement classification. Took 646.3753499984741 seconds. Affected 1,984 rows
+Entity label update took 6136.453726053238 seconds
+2025-10-15 16:50:55,539 [INFO] Finished value refinement classification. Took 87.91515398025513 seconds. Affected 962 rows
+2025-10-15 16:52:48,253 [INFO] Finished value unrefinement classification. Took 112.71170377731323 seconds. Affected 584 rows
+2025-10-15 17:03:52,389 [INFO] Finished value refinement classification. Took 69.32508587837219 seconds. Affected 962 rows
+2025-10-15 17:05:19,360 [INFO] Finished value unrefinement classification. Took 86.96812081336975 seconds. Affected 584 rows
+2025-10-15 17:08:30,774 [INFO] Finished value refinement classification. Took 71.59827899932861 seconds. Affected 962 rows
+2025-10-15 17:10:08,015 [INFO] Finished value unrefinement classification. Took 97.23680305480957 seconds. Affected 584 rows
+2025-10-15 18:56:40,922 [INFO] Finished value refinement classification. Took 415.60210394859314 seconds. Affected 2,984 rows

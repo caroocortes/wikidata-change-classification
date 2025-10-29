@@ -9,9 +9,14 @@ class SQLRunner:
         try:
             with self.conn.cursor() as cur:
                 cur.execute(query, params)
+                affected_rows = cur.rowcount 
+
                 if cur.description: 
-                    return cur.fetchall()
-            self.conn.commit()
+                    result = cur.fetchall()
+                    return result
+                else:
+                    self.conn.commit()
+                    return affected_rows  
         except Exception as e:
             print('There was an error when trying to execute the query.')
             raise e

@@ -1,9 +1,9 @@
 CREATE EXTENSION IF NOT EXISTS unaccent;
 
-ALTER TABLE change_sample_30
+ALTER TABLE :change
 ADD COLUMN IF NOT EXISTS formatting BOOLEAN DEFAULT FALSE;
 
-UPDATE change_sample_30 c
+UPDATE :change c
 SET formatting = TRUE
 WHERE 
 	c.datatype NOT IN ('wikibase-item', 'wikibase-entityid','wikibase-property','wikibase-lexeme','wikibase-sense','wikibase-form','entity-schema', 'globecoordinate') AND
@@ -42,8 +42,8 @@ WHERE
 				lower(unaccent(trim(c.new_value::text))) OR
 				
 				-- punctuation
-				regexp_replace(lower(unaccent(trim(c.old_value->>0))), '[[:punct:]\s]', '', 'g') = 
-				regexp_replace(lower(unaccent(trim(c.new_value->>0))), '[[:punct:]\s]', '', 'g') or 
+				regexp_replace(lower(unaccent(trim(c.old_value->>0))), '[[:punct:]\s]', ' ', 'g') = 
+				regexp_replace(lower(unaccent(trim(c.new_value->>0))), '[[:punct:]\s]', ' ', 'g') or 
 				
 				--  space normalization
 				
@@ -56,14 +56,14 @@ WHERE
 				
 				-- quotes/brackets
 				
-				regexp_replace(TRIM(LOWER(unaccent(c.old_value->>0))), '["“”‘’\[\]\(\)\{\}]', '', 'g') =   
-				regexp_replace(TRIM((LOWER(unaccent(c.new_value->>0)))), '["“”‘’\[\]\(\)\{\}]', '', 'g') or
+				regexp_replace(TRIM(LOWER(unaccent(c.old_value->>0))), '["“”‘’\[\]\(\)\{\}]', ' ', 'g') =   
+				regexp_replace(TRIM((LOWER(unaccent(c.new_value->>0)))), '["“”‘’\[\]\(\)\{\}]', ' ', 'g') or
 				
 				
 				-- distance after removing hyphens/dashes
 				
-				regexp_replace(TRIM(LOWER(unaccent(c.old_value->>0))), '[-–—_]', '', 'g') = 
-				regexp_replace(TRIM(LOWER(unaccent(c.new_value->>0))), '[-–—_]', '', 'g') or
+				regexp_replace(TRIM(LOWER(unaccent(c.old_value->>0))), '[-–—_]', ' ', 'g') = 
+				regexp_replace(TRIM(LOWER(unaccent(c.new_value->>0))), '[-–—_]', ' ', 'g') or
 				
 				-- Article addition/removal at the start 
 				

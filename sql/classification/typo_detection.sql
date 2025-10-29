@@ -1,9 +1,9 @@
 CREATE EXTENSION IF NOT EXISTS unaccent;
 
 CREATE INDEX IF NOT EXISTS idx_change_metadata_lookup 
-  ON change_metadata_sample_30 (revision_id, property_id, value_id, change_target, change_metadata); --  for WHERE filter
+  ON :change_metadata (revision_id, property_id, value_id, change_target, change_metadata); --  for WHERE filter
 
-ALTER TABLE change_sample_30
+ALTER TABLE :change
 ADD COLUMN IF NOT EXISTS typo BOOLEAN DEFAULT FALSE;
 
 WITH change_with_stability AS (
@@ -21,12 +21,12 @@ WITH change_with_stability AS (
         ) - r.timestamp)) / 86400.0 AS days_stable_after
     FROM 
         (
-		revision_sample_30 r -- for the timestamp
+		:revision r -- for the timestamp
         JOIN 
-        change_sample_30 c 
+        :change c 
         ON r.revision_id = c.revision_id) -- uses FK of revision_id
         LEFT JOIN -- uses FK of revision_id, property_id, value_id, change_target
-        change_metadata_sample_30 cm ON c.revision_id = cm.revision_id AND c.property_id = cm.property_id AND c.value_id = cm.value_id AND c.change_target = cm.change_target
+        :change_metadata cm ON c.revision_id = cm.revision_id AND c.property_id = cm.property_id AND c.value_id = cm.value_id AND c.change_target = cm.change_target
 	WHERE 
         reverted_edit = FALSE AND reversion = FALSE AND
         c.action = 'UPDATE' AND 
@@ -38,7 +38,7 @@ WITH change_with_stability AS (
         -- only for string values
         c.datatype IN ('monolingualtext', 'string', 'url', 'commonsMedia', 'geo-shape', 'tabular-data', 'math', 'musical-notation')
 )
-UPDATE change_sample_30 c
+UPDATE :change c
 SET typo = TRUE
 FROM change_with_stability cws
 WHERE 

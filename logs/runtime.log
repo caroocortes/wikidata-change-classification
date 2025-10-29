@@ -1,7 +1,18 @@
-2025-09-25 14:30:48,307 [INFO] Started typo classification
-2025-09-25 14:31:17,956 [INFO] Started formatting classification
-2025-09-25 14:31:21,472 [INFO] Finished formatting classification. Took 3.5162270069122314 seconds
-2025-09-25 14:31:21,473 [INFO] Started typo classification
-2025-09-25 14:31:26,524 [INFO] SQL-based typo classification took: 5.048290014266968 seconds
-2025-09-25 15:18:58,734 [INFO] Started typo classification
-2025-09-25 15:19:04,245 [INFO] SQL-based typo classification took: 5.510201930999756 seconds
+2025-10-16 18:42:26,555 [INFO] Running change classification: 9,537,716 changes, 6,372,017 revisions, 30 files, 40,888 entities.
+2025-10-16 18:52:19,111 [INFO] Finished reverted edit classification. Took 592.5511391162872 seconds. Affected 21,845 rows
+2025-10-16 18:53:18,444 [INFO] Finished formatting classification. Took 59.33081817626953 seconds. Affected 39,206 rows
+2025-10-16 18:53:29,842 [INFO] Finished typo classification. Took 11.391764879226685 seconds. Affected 921 rows
+2025-10-16 18:54:49,019 [INFO] Finished value refinement classification. Took 79.17603898048401 seconds. Affected 962 rows
+2025-10-16 18:56:24,166 [INFO] Finished value unrefinement classification. Took 95.14366221427917 seconds. Affected 584 rows
+2025-10-16 18:58:44,024 [INFO] Finished property replacement classification. Took 139.85631608963013 seconds. Affected 260,444 rows
+2025-10-19 23:06:27,997 [INFO] Running change classification: 9,537,716 changes, 6,372,151 revisions, 30 files, 40,888 entities.
+2025-10-19 23:16:08,172 [INFO] Finished reverted edit classification. Took 580.1697170734406 seconds. Affected 22,102 rows
+2025-10-19 23:16:48,832 [INFO] Finished formatting classification. Took 40.65832304954529 seconds. Affected 28,226 rows
+2025-10-19 23:16:59,498 [INFO] Finished typo classification. Took 10.660881996154785 seconds. Affected 1,265 rows
+2025-10-20 06:53:22,228 [INFO] Running change classification: 9,537,716 changes, 6,372,151 revisions, 30 files, 40,888 entities.
+2025-10-20 07:00:25,225 [INFO] Finished reverted edit classification. Took 422.9919648170471 seconds. Affected 22,102 rows
+2025-10-20 07:00:52,828 [INFO] Finished formatting classification. Took 27.60009503364563 seconds. Affected 28,226 rows
+2025-10-20 07:01:00,374 [INFO] Finished typo classification. Took 7.533091068267822 seconds. Affected 1,265 rows
+2025-10-20 07:02:30,750 [INFO] Finished value refinement classification. Took 90.37535119056702 seconds. Affected 950 rows
+2025-10-20 07:04:09,673 [INFO] Finished value unrefinement classification. Took 98.92056322097778 seconds. Affected 580 rows
+2025-10-20 07:06:34,026 [INFO] Finished property replacement classification. Took 144.34854698181152 seconds. Affected 260,546 rows

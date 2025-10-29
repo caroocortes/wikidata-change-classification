@@ -9,68 +9,101 @@ UPDATE :change
 SET old_value = to_jsonb(REGEXP_REPLACE(old_value->>0, '([+-])0*(\d+)', '\1\2'))
 WHERE datatype = 'time';
 
-WITH value_unrefinement_metrics_string AS (
-    SELECT 
-    revision_id, property_id, value_id, change_target,
-    LENGTH(old_value->>0) - LENGTH(new_value->>0) as length_decrease,
-    
-    -- Containment check
-    CASE 
-        WHEN (old_value->>0) LIKE '%' || (new_value->>0) || '%' THEN 1 
-        ELSE 0 
-    END as new_value_contained,
-    
-    -- Word count decrease
-    array_length(string_to_array(old_value->>0, ' '), 1) - array_length(string_to_array(new_value->>0, ' '), 1) as word_decrease
-    
-    FROM :change
-    WHERE 
-        action = 'UPDATE' AND 
-        target = 'PROPERTY_VALUE' AND
-        reverted_edit = FALSE AND reversion = FALSE AND
-		typo = FALSE AND formatting = FALSE
-)
 UPDATE :change c
 SET value_unrefinement = TRUE
-FROM value_unrefinement_metrics_string vrm
 WHERE 
 reverted_edit = FALSE AND reversion = FALSE AND
 typo = FALSE AND formatting = FALSE AND
 c.action = 'UPDATE' AND 
-c.target = 'PROPERTY_VALUE' AND
-c.revision_id = vrm.revision_id AND 
-c.property_id = vrm.property_id AND
-c.value_id = vrm.value_id AND
-c.change_target = vrm.change_target
+c.target = 'PROPERTY_VALUE'
 AND
 (
     ( -- string types
         datatype IN ('monolingualtext', 'string', 'external-id', 'url', 'commonsMedia', 'geo-shape', 'tabular-data', 'math', 'musical-notation') AND 
-        new_value_contained > 0 AND -- new value is contained because this is unrefinement
-        length_decrease > 0 AND 
-        word_decrease > 0
+        regexp_split_to_array(regexp_replace(regexp_replace(lower(trim(new_value->>0)), '[[:punct:]]', ' ', 'g'), '[-–—_]', ' ', 'g'), '\s+') <@ regexp_split_to_array(regexp_replace(regexp_replace(lower(trim(old_value->>0)), '[[:punct:]]', ' ', 'g'), '[-–—_]', ' ', 'g'), '\s+') AND -- new value is contained because this is unrefinement
+        (-- it's an or for cases when it's just a word that turns more specific (e.g. Hinduism -> Hindu)
+            LENGTH(regexp_replace(regexp_replace(lower(trim(old_value->>0)), '[[:punct:]]', ' ', 'g'), '[-–—_]', ' ', 'g')) - LENGTH(regexp_replace(regexp_replace(lower(trim(new_value->>0)), '[[:punct:]]', ' ', 'g'), '[-–—_]', ' ', 'g')) > 0  
+            or
+            array_length(string_to_array(regexp_replace(regexp_replace(lower(trim(old_value->>0)), '[[:punct:]]', ' ', 'g'), '[-–—_]', ' ', 'g'), ' ') , 1) - array_length(string_to_array(regexp_replace(regexp_replace(lower(trim(new_value->>0)), '[[:punct:]]', ' ', 'g'), '[-–—_]', ' ', 'g'), ' '), 1) > 0
+        )
+    )
+    OR
+    ( -- entity types
+        datatype IN ('wikibase-item', 'wikibase-entityid','wikibase-property','wikibase-lexeme','wikibase-sense','wikibase-form') AND 
+        (regexp_split_to_array(regexp_replace(regexp_replace(lower(trim(new_value_label)), '[[:punct:]]', ' ', 'g'), '[-–—_]', ' ', 'g'), '\s+') <@ regexp_split_to_array(regexp_replace(regexp_replace(lower(trim(old_value_label)), '[[:punct:]]', ' ', 'g'), '[-–—_]', ' ', 'g'), '\s+')) AND -- new value is contained because this is unrefinement
+        (-- it's an or for cases when it's just a word that turns more specific (e.g. Hinduism -> Hindu)
+            LENGTH(old_value_label) - LENGTH(new_value_label) > 0 
+            OR 
+            array_length(string_to_array(regexp_replace(regexp_replace(lower(trim(old_value_label)), '[[:punct:]]', ' ', 'g'), '[-–—_]', ' ', 'g'), ' '), 1) -
+             array_length(string_to_array(regexp_replace(regexp_replace(lower(trim(new_value_label)), '[[:punct:]]', ' ', 'g'), '[-–—_]', ' ', 'g'), ' '), 1) > 0 -- word decrease
+        )
     )
     OR 
     -- numeric & globe coordinate
     -- Precision was removed: 9.5 -> 9
     (
-        datatype IN ('quantity','globecoordinate') AND 
-        new_value_contained > 0 AND
-        length_decrease > 0 AND
+        ( (datatype IN ('quantity') AND change_target != 'unit') or (datatype IN ('globecoordinate') AND change_target = 'precision') ) AND
+        old_value->>0 LIKE new_value->>0 || '%' AND -- starts with the new_value
+        LENGTH(old_value->>0) - LENGTH(new_value->>0) > 0 AND -- length decrease
         REGEXP_REPLACE(new_value->>0, '[,]', '.', 'g') !~ '[.]' AND -- no decimal in new value -> decimal was removed
         REGEXP_REPLACE(old_value->>0, '[,]', '.', 'g') ~ '[.]' 
     )
     OR
-    -- Precision was rounded or cut: 9.563 -> 9.5
+    -- Precision was cut: 9.563 -> 9.5
     (
-        datatype IN ('quantity','globecoordinate') AND
-        new_value_contained > 0 AND
-        length_decrease > 0 AND
+        ( (datatype IN ('quantity') AND change_target != 'unit') or (datatype IN ('globecoordinate') AND change_target = 'precision') ) AND
+        old_value->>0 LIKE new_value->>0 || '%' AND -- starts with the new_value
+        LENGTH(old_value->>0) - LENGTH(new_value->>0) > 0 AND -- length decrease
         REGEXP_REPLACE(new_value->>0, '[,]', '.', 'g') ~ '[.]' AND -- still has decimla
         REGEXP_REPLACE(old_value->>0, '[,]', '.', 'g') ~ '[.]' AND   -- already had decimal
         -- replace ',' for '.' to make it homogeneous
         -- SPLIT_PART(value, '.', 2) returns the value after the '.'
         LENGTH(SPLIT_PART(REGEXP_REPLACE(new_value->>0, '[,]', '.', 'g'), '.', 2)) < LENGTH(SPLIT_PART(REGEXP_REPLACE(old_value->>0, '[,]', '.', 'g'), '.', 2)) 
+    )
+    OR
+    (
+        datatype IN ('globecoordinate') AND change_target = ''  AND
+        (
+            (
+                old_value->>'latitude' LIKE new_value->>'latitude' || '%' AND -- starts with the new_value
+                LENGTH(old_value->>'latitude') - LENGTH(new_value->>'latitude') > 0 AND -- length decrease
+                REGEXP_REPLACE(new_value->>'latitude', '[,]', '.', 'g') !~ '[.]' AND -- no decimal in new value -> decimal was removed
+                REGEXP_REPLACE(old_value->>'latitude', '[,]', '.', 'g') ~ '[.]' 
+            )
+            OR
+            (
+                old_value->>'longitude' LIKE new_value->>'longitude' || '%' AND -- starts with the new_value
+                LENGTH(old_value->>'longitude') - LENGTH(new_value->>'longitude') > 0 AND -- length decrease
+                REGEXP_REPLACE(new_value->>'longitude', '[,]', '.', 'g') !~ '[.]' AND -- no decimal in new value -> decimal was removed
+                REGEXP_REPLACE(old_value->>'longitude', '[,]', '.', 'g') ~ '[.]' 
+            )
+        )
+    )
+    OR
+    -- Precision was rounded or cut: 9.563 -> 9.5
+    (
+        datatype IN ('globecoordinate') AND change_target = ''  AND
+        (
+            (
+                old_value->>'latitude' LIKE new_value->>'latitude' || '%' AND -- starts with the new_value
+                LENGTH(old_value->>'latitude') - LENGTH(new_value->>'latitude') > 0 AND -- length decrease
+                REGEXP_REPLACE(new_value->>'latitude', '[,]', '.', 'g') ~ '[.]' AND -- still has decimla
+                REGEXP_REPLACE(old_value->>'latitude', '[,]', '.', 'g') ~ '[.]' AND   -- already had decimal
+                -- replace ',' for '.' to make it homogeneous
+                -- SPLIT_PART(value, '.', 2) returns the value after the '.'
+                LENGTH(SPLIT_PART(REGEXP_REPLACE(new_value->>'latitude', '[,]', '.', 'g'), '.', 2)) < LENGTH(SPLIT_PART(REGEXP_REPLACE(old_value->>'latitude', '[,]', '.', 'g'), '.', 2)) 
+            )
+            OR
+            (
+                old_value->>'longitude' LIKE new_value->>'longitude' || '%' AND -- starts with the new_value
+                LENGTH(old_value->>'longitude') - LENGTH(new_value->>'longitude') > 0 AND -- length decrease
+                REGEXP_REPLACE(new_value->>'longitude', '[,]', '.', 'g') ~ '[.]' AND -- still has decimla
+                REGEXP_REPLACE(old_value->>'longitude', '[,]', '.', 'g') ~ '[.]' AND   -- already had decimal
+                -- replace ',' for '.' to make it homogeneous
+                -- SPLIT_PART(value, '.', 2) returns the value after the '.'
+                LENGTH(SPLIT_PART(REGEXP_REPLACE(new_value->>'longitude', '[,]', '.', 'g'), '.', 2)) < LENGTH(SPLIT_PART(REGEXP_REPLACE(old_value->>'longitude', '[,]', '.', 'g'), '.', 2)) 
+            )
+        )
     )
 );
 
@@ -83,7 +116,8 @@ typo = FALSE AND formatting = FALSE AND
 datatype = 'time' AND
 reverted_edit = FALSE AND reversion = FALSE AND
 c.action = 'UPDATE' AND 
-c.target = 'PROPERTY_VALUE' AND
+c.target = 'PROPERTY_VALUE' AND 
+change_target = '' AND
 (
     (
         -- DATE unrefinement: less specific date

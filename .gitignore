@@ -12,3 +12,7 @@ env/
 
 # DB config
 config/db_config.yml
+
+.DS_Store
+
+logs/*

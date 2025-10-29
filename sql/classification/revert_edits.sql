@@ -1,35 +1,35 @@
-ALTER TABLE :change
-ADD COLUMN IF NOT EXISTS reverted_edit BOOLEAN DEFAULT FALSE;
-
-ALTER TABLE :change
-ADD COLUMN IF NOT EXISTS reversion BOOLEAN DEFAULT FALSE;
-
 CREATE MATERIALIZED VIEW IF NOT EXISTS change_timestamp_entity AS
 SELECT r.timestamp, r.entity_id, c.*, r.comment
 FROM :revision r JOIN :change c ON r.revision_id = c.revision_id
-WHERE reverted_edit = FALSE AND reversion = FALSE
 WITH DATA;
 
-CREATE INDEX idx_cte_join_conditions 
+CREATE INDEX IF NOT EXISTS idx_cte_join_conditions 
 ON change_timestamp_entity (entity_id, property_id, value_id, change_target, timestamp);
 
 -- Index for hash lookups
-CREATE INDEX idx_cte_hashes_old_not_null
+CREATE INDEX IF NOT EXISTS idx_cte_hashes_old_not_null
 ON change_timestamp_entity (old_hash, new_hash) 
 WHERE old_hash IS NOT NULL;
 
-CREATE INDEX idx_cte_hashes_old_null
+CREATE INDEX IF NOT EXISTS idx_cte_hashes_old_null
 ON change_timestamp_entity (old_hash, new_hash) 
 WHERE old_hash IS NULL;
 
 -- Index for comment searches
-CREATE INDEX idx_cte_comment 
+CREATE INDEX IF NOT EXISTS idx_cte_comment 
 ON change_timestamp_entity (comment) 
 WHERE comment ILIKE ANY(ARRAY['%rvv%', 'rv v', '%vandal%', '%revert%', '%restore%']);
 
 -- =================================================================
 -- 		REVERTED REVISIONS
 -- =================================================================
+
+ALTER TABLE :change
+ADD COLUMN IF NOT EXISTS reverted_edit BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE :change
+ADD COLUMN IF NOT EXISTS reversion BOOLEAN DEFAULT FALSE;
+
 DROP TABLE IF EXISTS reverted;
 
 CREATE TEMP TABLE reverted AS
