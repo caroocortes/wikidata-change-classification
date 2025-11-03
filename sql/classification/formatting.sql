@@ -42,13 +42,13 @@ WHERE
 				lower(unaccent(trim(c.new_value::text))) OR
 				
 				-- punctuation
-				regexp_replace(lower(unaccent(trim(c.old_value->>0))), '[[:punct:]\s]', ' ', 'g') = 
-				regexp_replace(lower(unaccent(trim(c.new_value->>0))), '[[:punct:]\s]', ' ', 'g') or 
+				regexp_replace(lower(unaccent(trim(c.old_value->>0))), '[[:punct:]\s]+', '', 'g') = 
+				regexp_replace(lower(unaccent(trim(c.new_value->>0))), '[[:punct:]\s]+', '', 'g') or 
 				
 				--  space normalization
 				
-				regexp_replace(lower(unaccent(c.old_value->>0)), '\s+', ' ', 'g') = 
-				regexp_replace(lower(unaccent(c.new_value->>0)), '\s+', ' ', 'g') or
+				regexp_replace(lower(unaccent(c.old_value->>0)), '\s+', '', 'g') = 
+				regexp_replace(lower(unaccent(c.new_value->>0)), '\s+', '', 'g') or
 				
 				-- trimming
 				trim(c.old_value->>0) = 
@@ -56,14 +56,14 @@ WHERE
 				
 				-- quotes/brackets
 				
-				regexp_replace(TRIM(LOWER(unaccent(c.old_value->>0))), '["“”‘’\[\]\(\)\{\}]', ' ', 'g') =   
-				regexp_replace(TRIM((LOWER(unaccent(c.new_value->>0)))), '["“”‘’\[\]\(\)\{\}]', ' ', 'g') or
+				regexp_replace(TRIM(LOWER(unaccent(c.old_value->>0))), '["“”‘’\[\]\(\)\{\}\s]+', '', 'g') =   
+				regexp_replace(TRIM((LOWER(unaccent(c.new_value->>0)))), '["“”‘’\[\]\(\)\{\}\s]+', '', 'g') or
 				
 				
 				-- distance after removing hyphens/dashes
 				
-				regexp_replace(TRIM(LOWER(unaccent(c.old_value->>0))), '[-–—_]', ' ', 'g') = 
-				regexp_replace(TRIM(LOWER(unaccent(c.new_value->>0))), '[-–—_]', ' ', 'g') or
+				regexp_replace(TRIM(LOWER(unaccent(c.old_value->>0))), '[-–—_\s]+', '', 'g') = 
+				regexp_replace(TRIM(LOWER(unaccent(c.new_value->>0))), '[-–—_\s]+', '', 'g') or
 				
 				-- Article addition/removal at the start 
 				
