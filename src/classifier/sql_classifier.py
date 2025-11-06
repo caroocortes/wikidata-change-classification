@@ -14,8 +14,8 @@ logging.basicConfig(
     level=logging.INFO, 
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
-        logging.FileHandler(log_file, mode="a"),  # append logs
-        logging.StreamHandler()                   # also print to console
+        logging.FileHandler(log_file, mode="a"), 
+        logging.StreamHandler()                 
     ]
 )
 
@@ -111,19 +111,19 @@ class SQLClassifier(Classifier):
         total_time = time.time() - start_time
         logging.info(f'Finished value unrefinement classification. Took {total_time} seconds. Affected {affected_rows:,} rows')
 
-    def run_value_unrefinement_classification(self):
+    def run_sign_precision_classification(self):
         start_time = time.time()
 
-        sql_file = self.sql_dir / 'value_unrefinement.sql'
+        sql_file = self.sql_dir / 'sign_precision_changes.sql'
         
         with open(sql_file) as f:
-            value_unrefinement_query = f.read()
+            sign_precision_query = f.read()
         
-        value_unrefinement_query = value_unrefinement_query.replace(":change", self.table_names['change_table'])
-        affected_rows = self.sql_runner.execute_query(value_unrefinement_query)
+        sign_precision_query = sign_precision_query.replace(":change", self.table_names['change_table'])
+        affected_rows = self.sql_runner.execute_query(sign_precision_query)
 
         total_time = time.time() - start_time
-        logging.info(f'Finished value unrefinement classification. Took {total_time} seconds. Affected {affected_rows:,} rows')
+        logging.info(f'Finished sign precision classification. Took {total_time} seconds. Affected {affected_rows:,} rows')
 
     def link_fix_classification(self):
         start_time = time.time()
@@ -200,4 +200,6 @@ class SQLClassifier(Classifier):
         self.run_typo_classification()
         self.run_value_refinement_classification()
         self.run_value_unrefinement_classification()
+        self.run_sign_precision_classification()
+        self.link_fix_classification()
         self.run_property_replacement_classification()

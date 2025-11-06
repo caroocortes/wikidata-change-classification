@@ -7,11 +7,11 @@
         "password": "postgres"
     },
     "table_names" : {
-        "change_table": "value_change_sample_30",
-        "revision_table": "revision_sample_30",
-        "change_metadata_table": "value_change_metadata_sample_30",
-        "reference_change_table": "reference_change_sample_30",
-        "qualifier_change_table": "qualifier_change_sample_30"
+        "change_table": "value_change",
+        "revision_table": "revision",
+        "change_metadata_table": "value_change_metadata",
+        "reference_change_table": "reference_change",
+        "qualifier_change_table": "qualifier_change"
     },
     "sql_dir": "sql/classification"
 }
