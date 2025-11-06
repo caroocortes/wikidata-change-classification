@@ -3,7 +3,7 @@ import logging
 import time
 
 from ..sql.sql_runner import SQLRunner
-from classifier import Classifier
+from .classifier import Classifier
 from const import LOG_DIR
 
 log_dir = Path(LOG_DIR)

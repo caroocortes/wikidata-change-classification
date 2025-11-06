@@ -1,8 +1,8 @@
 import time
 import json
 
-from src.classifier.sql_classifier import SQLClassifier
-from src.classifier.ml_classifier import MLClassifier
+from .classifier import SQLClassifier
+from .classifier import MLClassifier
 
 class ClassificationManager:
 

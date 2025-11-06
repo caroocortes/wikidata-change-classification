@@ -1,4 +1,4 @@
-from classifier import Classifier
+from .classifier import Classifier
 
 class MLClassifier(Classifier):
     def __init__(self, config):
