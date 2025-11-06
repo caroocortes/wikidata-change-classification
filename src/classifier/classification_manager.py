@@ -9,6 +9,7 @@ class ClassificationManager:
     def __init__(self, classification_type, config_path='config/db_config.json'):
         with open(config_path, "r") as f:
             self.config = json.load(f)
+        self.table_names = self.config['table_names']
         self.classification_type = classification_type
         if classification_type == 'SQL':
             self.classifier = SQLClassifier(self.config)
