@@ -1,7 +1,5 @@
-from src.classifier import ClassificationManager
-import psycopg2
+from src.classifier.classification_manager import ClassificationManager
 from dotenv import load_dotenv
-import os
 
 
 if __name__ == "__main__":
