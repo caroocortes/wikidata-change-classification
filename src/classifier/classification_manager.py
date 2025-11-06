@@ -15,6 +15,8 @@ class ClassificationManager:
             self.classifier = SQLClassifier(self.config)
         else:
             self.classifier = MLClassifier(self.config)
+            
+        self.classifier.table_names = self.table_names
 
     def run_classifier(self):
         start_time = time.time()
