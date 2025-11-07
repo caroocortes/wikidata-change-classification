@@ -157,49 +157,49 @@ class SQLClassifier(Classifier):
 
     def run_classification(self):
 
-        query = f"""
-            DROP MATERIALIZED VIEW IF EXISTS change_timestamp_entity;
+        # query = f"""
+        #     DROP MATERIALIZED VIEW IF EXISTS change_timestamp_entity;
 
-            ALTER TABLE {self.table_names['change_table']}
-            DROP COLUMN IF EXISTS typo, DROP COLUMN IF EXISTS formatting, DROP COLUMN IF EXISTS value_refinement, DROP COLUMN IF EXISTS value_unrefinement, DROP COLUMN IF EXISTS reverted_edit, DROP COLUMN IF EXISTS reversion;
-        """
-        res = self.sql_runner.execute_query(query)
+        #     ALTER TABLE {self.table_names['change_table']}
+        #     DROP COLUMN IF EXISTS typo, DROP COLUMN IF EXISTS formatting, DROP COLUMN IF EXISTS value_refinement, DROP COLUMN IF EXISTS value_unrefinement, DROP COLUMN IF EXISTS reverted_edit, DROP COLUMN IF EXISTS reversion;
+        # """
+        # res = self.sql_runner.execute_query(query)
 
-        num_changes_query = f"""
-            SELECT count(*)
-            from {self.table_names['change_table']}
-        """
-        num_changes = self.sql_runner.execute_query(num_changes_query)
-        num_changes = num_changes[0][0] if num_changes else 0
+        # num_changes_query = f"""
+        #     SELECT count(*)
+        #     from {self.table_names['change_table']}
+        # """
+        # num_changes = self.sql_runner.execute_query(num_changes_query)
+        # num_changes = num_changes[0][0] if num_changes else 0
 
-        num_revisions_query = f"""
-            SELECT count(*)
-            from {self.table_names['revision_table']}
-        """
-        num_revisions = self.sql_runner.execute_query(num_revisions_query)
-        num_revisions = num_revisions[0][0] if num_revisions else 0
+        # num_revisions_query = f"""
+        #     SELECT count(*)
+        #     from {self.table_names['revision_table']}
+        # """
+        # num_revisions = self.sql_runner.execute_query(num_revisions_query)
+        # num_revisions = num_revisions[0][0] if num_revisions else 0
 
-        num_files_query = f"""
-            SELECT count(DISTINCT file_path)
-            from {self.table_names['revision_table']}
-        """
-        num_files = self.sql_runner.execute_query(num_files_query)
-        num_files = num_files[0][0] if num_files else 0
+        # num_files_query = f"""
+        #     SELECT count(DISTINCT file_path)
+        #     from {self.table_names['revision_table']}
+        # """
+        # num_files = self.sql_runner.execute_query(num_files_query)
+        # num_files = num_files[0][0] if num_files else 0
 
-        num_entities_query = f"""
-            SELECT count(DISTINCT entity_id)
-            from {self.table_names['revision_table']}
-        """
-        num_entities = self.sql_runner.execute_query(num_entities_query)
-        num_entities = num_entities[0][0] if num_entities else 0
+        # num_entities_query = f"""
+        #     SELECT count(DISTINCT entity_id)
+        #     from {self.table_names['revision_table']}
+        # """
+        # num_entities = self.sql_runner.execute_query(num_entities_query)
+        # num_entities = num_entities[0][0] if num_entities else 0
 
-        logging.info(f'Running change classification: {num_changes:,} changes, {num_revisions:,} revisions, {num_files:,} files, {num_entities:,} entities.')
+        # logging.info(f'Running change classification: {num_changes:,} changes, {num_revisions:,} revisions, {num_files:,} files, {num_entities:,} entities.')
 
-        self.run_reverted_edit_classification()
-        self.run_formatting_classification()
-        self.run_typo_classification()
-        self.run_value_refinement_classification()
-        self.run_value_unrefinement_classification()
+        # self.run_reverted_edit_classification()
+        # self.run_formatting_classification()
+        # self.run_typo_classification()
+        # self.run_value_refinement_classification()
+        # self.run_value_unrefinement_classification()
         self.run_sign_precision_classification()
         self.link_fix_classification()
         self.run_property_replacement_classification()
