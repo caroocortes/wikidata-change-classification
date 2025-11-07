@@ -9,12 +9,12 @@ WHERE
 NOT (
 formatting OR typo OR value_refinement OR value_unrefinement OR
 reverted_edit OR reversion) AND
-c.action = 'UPDATE' AND 
-c.target = 'PROPERTY_VALUE' AND
+action = 'UPDATE' AND 
+target = 'PROPERTY_VALUE' AND
 (
     (  
         -- precision changes, the last part has a levenshtein distance that is small (<= 3)
-        c.datatype IN ('quantity') AND
+        datatype IN ('quantity') AND
         -- they both have precision
         REGEXP_REPLACE(new_value->>0, '[,]', '.', 'g') ~ '[.]' AND 
         REGEXP_REPLACE(old_value->>0, '[,]', '.', 'g') ~ '[.]' AND
@@ -22,7 +22,7 @@ c.target = 'PROPERTY_VALUE' AND
     )
     OR 
     (
-        c.datatype IN ('globecoordinate') AND 
+        datatype IN ('globecoordinate') AND 
         (
             (
 				new_value != '{}' AND old_value != '{}' AND
@@ -52,16 +52,16 @@ WHERE
 NOT (
 formatting OR typo OR value_refinement OR value_unrefinement OR precision_change OR
 reverted_edit OR reversion) AND
-c.action = 'UPDATE' AND 
-c.target = 'PROPERTY_VALUE' AND
+action = 'UPDATE' AND 
+target = 'PROPERTY_VALUE' AND
 (
     (  
-        c.datatype IN ('quantity') AND
+        datatype IN ('quantity') AND
         REGEXP_REPLACE(new_value->>0, '^[+-]', '', 'g') = REGEXP_REPLACE(old_value->>0, '^[+-]', '', 'g')
     )
     OR 
     (
-        c.datatype IN ('globecoordinate') AND 
+        datatype IN ('globecoordinate') AND 
         (
             (
 				new_value != '{}' AND old_value != '{}' AND
