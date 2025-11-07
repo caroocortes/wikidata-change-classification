@@ -25,17 +25,17 @@ c.target = 'PROPERTY_VALUE' AND
         c.datatype IN ('globecoordinate') AND 
         (
             (
-                new_value != '{}' AND old_value != '{}' AND
-                REGEXP_REPLACE(new_value::latitude, '[,]', '.', 'g') ~ '[.]' AND 
-                REGEXP_REPLACE(old_value::latitude, '[,]', '.', 'g') ~ '[.]' AND
-                levenshtein(SPLIT_PART(REGEXP_REPLACE(new_value::latitude, '[,]', '.', 'g'), '.', 2), SPLIT_PART(REGEXP_REPLACE(old_value::latitude, '[,]', '.', 'g'), '.', 2)) <= 3
+				new_value != '{}' AND old_value != '{}' AND
+                REGEXP_REPLACE(new_value->>'latitude', '[,]', '.', 'g') ~ '[.]' AND 
+                REGEXP_REPLACE(old_value->>'latitude', '[,]', '.', 'g') ~ '[.]' AND
+                levenshtein(SPLIT_PART(REGEXP_REPLACE(new_value->>'latitude', '[,]', '.', 'g'), '.', 2), SPLIT_PART(REGEXP_REPLACE(old_value->>'latitude', '[,]', '.', 'g'), '.', 2)) <= 3
             )
             OR
             (
-                new_value != '{}' AND old_value != '{}' AND
-                REGEXP_REPLACE(new_value::longitude, '[,]', '.', 'g') ~ '[.]' AND 
-                REGEXP_REPLACE(old_value::longitude, '[,]', '.', 'g') ~ '[.]' AND
-                levenshtein(SPLIT_PART(REGEXP_REPLACE(new_value::longitude, '[,]', '.', 'g'), '.', 2), SPLIT_PART(REGEXP_REPLACE(old_value::longitude, '[,]', '.', 'g'), '.', 2)) <= 3
+				new_value != '{}' AND old_value != '{}' AND
+                REGEXP_REPLACE(new_value->>'longitude', '[,]', '.', 'g') ~ '[.]' AND 
+                REGEXP_REPLACE(old_value->>'longitude', '[,]', '.', 'g') ~ '[.]' AND
+                levenshtein(SPLIT_PART(REGEXP_REPLACE(new_value->>'longitude', '[,]', '.', 'g'), '.', 2), SPLIT_PART(REGEXP_REPLACE(old_value->>'longitude', '[,]', '.', 'g'), '.', 2)) <= 3
             )
         )
     )
@@ -44,6 +44,7 @@ c.target = 'PROPERTY_VALUE' AND
 
 ALTER TABLE :change
 ADD COLUMN IF NOT EXISTS sign_change BOOLEAN DEFAULT FALSE;
+
 
 UPDATE :change 
 SET sign_change = TRUE
@@ -63,13 +64,13 @@ c.target = 'PROPERTY_VALUE' AND
         c.datatype IN ('globecoordinate') AND 
         (
             (
-                new_value != '{}' AND old_value != '{}' AND
-                REGEXP_REPLACE(new_value::latitude, '^[+-]', '', 'g') = REGEXP_REPLACE(old_value::latitude, '^[+-]', '', 'g')
+				new_value != '{}' AND old_value != '{}' AND
+                REGEXP_REPLACE(new_value->>'latitude', '^[+-]', '', 'g') = REGEXP_REPLACE(old_value->>'latitude', '^[+-]', '', 'g')
             )
             OR
             (
-                new_value != '{}' AND old_value != '{}' AND
-                REGEXP_REPLACE(new_value::longitude, '^[+-]', '', 'g') = REGEXP_REPLACE(old_value::longitude, '^[+-]', '', 'g')
+				new_value != '{}' AND old_value != '{}' AND
+                REGEXP_REPLACE(new_value->>'longitude', '^[+-]', '', 'g') = REGEXP_REPLACE(old_value->>'longitude', '^[+-]', '', 'g')
             )
         )
     )
