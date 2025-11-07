@@ -200,6 +200,6 @@ class SQLClassifier(Classifier):
         # self.run_typo_classification()
         # self.run_value_refinement_classification()
         # self.run_value_unrefinement_classification()
-        self.run_sign_precision_classification()
+        # self.run_sign_precision_classification()
         self.link_fix_classification()
         self.run_property_replacement_classification()
