@@ -139,6 +139,9 @@ def query_to_df_chunked(query, conn, chunksize=50000):
 def get_data_from_db(conn, sql_untagged=True):
 
     print('Updating revision table with user_type column...')
+    import sys
+    sys.stdout.flush()
+    sys.stderr.flush()
 
     update_user_type = """
 
