@@ -1056,7 +1056,7 @@ def get_data_to_cluster(sql_untagged=True):
         port=DB_PORT
     )
 
-
+    print('Connected to database.', flush=True)
     df = get_data_from_db(conn, sql_untagged=sql_untagged)
 
     conn.close()
