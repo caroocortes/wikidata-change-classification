@@ -1046,6 +1046,7 @@ def get_data_to_cluster(sql_untagged=True):
     DB_PORT = os.environ.get("DB_PORT")
 
     print('Connecting to database...', flush=True)
+    print('DB connection parameters:', flush=True)
     print(DB_HOST, DB_PORT, DB_NAME, DB_USER)
 
     conn = psycopg2.connect(
