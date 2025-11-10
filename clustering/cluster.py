@@ -143,6 +143,8 @@ def get_data_from_db(conn, sql_untagged=True):
     sys.stdout.flush()
     sys.stderr.flush()
 
+    start_update = time.time()
+
     update_user_type = """
 
         CREATE INDEX IF NOT EXISTS idx_revision_user ON revision(username, user_id);
@@ -158,14 +160,17 @@ def get_data_from_db(conn, sql_untagged=True):
 
         UPDATE revision SET user_type = 'human' WHERE user_type IS NULL;
     """
+    
 
     with conn.cursor() as cur:
         cur.execute(update_user_type)
         conn.commit()
 
-    print('Updated user_type column in revision table', flush=True)
+    print(f'Updated user_type in {time.time() - start_update:.2f} seconds', flush=True)
 
     print('Creating indexes to speed up data extraction...', flush=True)
+
+    start_indexes = time.time()
 
     index_vc = """ 
         CREATE INDEX IF NOT EXISTS idx_value_change_revision_id 
@@ -181,10 +186,10 @@ def get_data_from_db(conn, sql_untagged=True):
         cur.execute(index_vc)
         cur.execute(index_vcm)
         conn.commit()
-
-    print('Created indexes', flush=True)
+    print(f'Created indexes in {time.time() - start_indexes:.2f} seconds', flush=True)
 
     print('\nGoing to extract data from db', flush=True)
+    start_get_data = time.time()
     query = """
         SELECT 
             c.revision_id,
@@ -243,6 +248,8 @@ def get_data_from_db(conn, sql_untagged=True):
         print(f'Saved {len(df):,} rows to parquet', flush=True)
     else:
         print('No data to save!', flush=True)
+
+    print(f'Extracted data from db in {time.time() - start_get_data:.2f} seconds', flush=True)
 
     import sys
 
