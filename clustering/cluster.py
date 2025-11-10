@@ -915,7 +915,7 @@ def prepare_features(df, datatype):
 
 
 def main_discovery_cluster(change_target='value', datatype='string'):
-    df = pd.read_parquet('changes_for_clustering.parquet')
+    df = pd.read_parquet('changes_for_clustering.parquet.bz2')
 
     if change_target == 'value':
         df_updates = df[(df['action'] == 'UPDATE') & (df['change_target'] == '')].copy()
@@ -940,10 +940,10 @@ def main_discovery_cluster(change_target='value', datatype='string'):
 
     X = X.astype(float).values  # Convert DataFrame to numpy array
 
-    X_clipped = np.clip(X, -10000, 10000)  # Reasonable range for your features
+    # X_clipped = np.clip(X, -10000, 10000)  # Reasonable range for your features
 
-    num_clipped = (X != X_clipped).sum()
-    print(f"Clipped {num_clipped:,} extreme values")
+    # num_clipped = (X != X_clipped).sum()
+    # print(f"Clipped {num_clipped:,} extreme values")
 
     from sklearn.preprocessing import StandardScaler
     scaler = StandardScaler()
@@ -1075,11 +1075,11 @@ def get_data_to_cluster(sql_untagged=True):
 
 if __name__ == "__main__":
 
-    get_data_to_cluster(sql_untagged=True)
+    # get_data_to_cluster(sql_untagged=True)
 
-    # start_time = time.time()
-    # main_discovery_cluster()
-    # print('Total time: %.2f seconds' % (time.time() - start_time))
+    start_time = time.time()
+    main_discovery_cluster()
+    print('Total time: %.2f seconds' % (time.time() - start_time))
 
 
     
