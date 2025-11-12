@@ -18,7 +18,7 @@ DATA_FILE_PATH = f'changes_for_clustering_{DATATYPE}_updates.parquet'
 #  PARAMS FOR CLUSTERING  #
 ###########################
 # FEATURES_FILE_PATH = 'string_change_features.parquet'
-FEATURES_FILE_PATH = 'string_features.parquet'  # Precomputed features file path. If None, features will be computed from raw data.
+FEATURES_FILE_PATH = None # Precomputed features file path. If None, features will be computed from raw data.
 CHANGE_TARGET = 'value'  # 'value' or 'datatype_metaddata'
 ACTION = 'UPDATE'  # 'UPDATE' for now
 
@@ -36,7 +36,7 @@ class Config:
     # Data paths
     data_path: Path = data_dir / DATA_FILE_PATH
     if FEATURES_FILE_PATH:
-        features_path: Path = cluster_dir / 'data' / FEATURES_FILE_PATH
+        features_path: Path = cluster_dir / 'features' / FEATURES_FILE_PATH
     else:
         features_path: Path = None
 
