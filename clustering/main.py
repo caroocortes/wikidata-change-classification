@@ -43,7 +43,7 @@ if "__main__":
             features_cols_change_id = feature_cols + ['revision_id', 'property_id', 'value_id', 'change_target']
             features_df = df_filtered[features_cols_change_id].copy()
             os.makedirs(f'{config.cluster_dir}/features', exist_ok=True)
-            features_df.to_parquet(f'{config.cluster_dir}/features/{config.datatype}_features.parquet', compression='snappy')
+            features_df.to_parquet(f'{tracker.experiment_dir}/{config.datatype}_features.parquet', compression='snappy')
     else:
         features_df = pd.read_parquet(config.features_path)
     
@@ -103,6 +103,10 @@ if "__main__":
     # Cluster
     print('Clustering...')
     labels, _ = perform_clustering(X_reduced, n_clusters=k, random_state=config.random_state, n_init=config.n_init, max_iter=config.max_iter)
+
+    df_filtered['cluster_id'] = labels
+    cluster_assignments = df_filtered[['revision_id', 'property_id', 'value_id', 'change_target', 'cluster_id']].copy()
+    tracker.save_dataframe(cluster_assignments, 'cluster_assignments.csv')
 
     # Analyze and save examples to CSV
     results_df = analyze_clusters(

@@ -1,24 +1,3 @@
-CREATE MATERIALIZED VIEW IF NOT EXISTS change_timestamp_entity AS
-SELECT r.timestamp, r.entity_id, c.*, r.comment
-FROM :revision r JOIN :change c ON r.revision_id = c.revision_id
-WITH DATA;
-
-CREATE INDEX IF NOT EXISTS idx_cte_join_conditions 
-ON change_timestamp_entity (entity_id, property_id, value_id, change_target, timestamp);
-
--- Index for hash lookups
-CREATE INDEX IF NOT EXISTS idx_cte_hashes_old_not_null
-ON change_timestamp_entity (old_hash, new_hash) 
-WHERE old_hash IS NOT NULL;
-
-CREATE INDEX IF NOT EXISTS idx_cte_hashes_old_null
-ON change_timestamp_entity (old_hash, new_hash) 
-WHERE old_hash IS NULL;
-
--- Index for comment searches
-CREATE INDEX IF NOT EXISTS idx_cte_comment 
-ON change_timestamp_entity (comment) 
-WHERE comment ILIKE ANY(ARRAY['%rvv%', 'rv v', '%vandal%', '%revert%', '%restore%']);
 
 -- =================================================================
 -- 		REVERTED REVISIONS
@@ -32,7 +11,7 @@ ADD COLUMN IF NOT EXISTS reversion BOOLEAN DEFAULT FALSE;
 
 DROP TABLE IF EXISTS reverted;
 
-CREATE TEMP TABLE reverted AS
+CREATE TABLE reverted AS
 SELECT
     cte1.revision_id        AS revision_vandalized,
     cte2.revision_id        AS revision_reverted,
@@ -86,13 +65,8 @@ WHERE
 -- =================================================================
 -- 		TAG CHANGES
 -- =================================================================
-CREATE INDEX idx_reverted_lookup_vand ON reverted (revision_vandalized, property_id, value_id);
-CREATE INDEX idx_reverted_lookup_rev ON reverted (revision_reverted, property_id, value_id);
-CREATE INDEX idx_reverted_restore ON reverted (entity_id, property_id, value_id, time_vandalized, time_reverted) 
-WHERE type_revert = 'restore';
 
 -- Update reverted edits 
-EXPLAIN ANALYZE
 UPDATE :change c
 SET reverted_edit = TRUE
 WHERE EXISTS (

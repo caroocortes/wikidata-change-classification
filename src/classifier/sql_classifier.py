@@ -68,13 +68,53 @@ class SQLClassifier(Classifier):
     def run_reverted_edit_classification(self):
         
         sql_file = self.sql_dir / 'revert_edits.sql'
+
+        mat_view_sql_file = self.sql_dir / 'materialized_view.sql'
         
+        with open(mat_view_sql_file) as f:
+            mat_view_query = f.read()
+
+        mat_view_query = mat_view_query.replace(":change", self.table_names['change_table']) \
+                                .replace(":revision", self.table_names["revision_table"])
+        
+        logging.info('Creating materialized view for reverted edit classification.')
+        start_time = time.time()
+        self.sql_runner.execute_query(mat_view_query)
+        total_time = time.time() - start_time
+        logging.info(f'Created materialized view for reverted edit classification. Took {total_time} seconds.')
+
+        logging.info('Creating indexes')
+
+        indexes_query ="""
+            -- Index for hash lookups
+            CREATE INDEX IF NOT EXISTS idx_cte_hashes_old_not_null
+            ON change_timestamp_entity (old_hash, new_hash) 
+            WHERE old_hash IS NOT NULL;
+
+            CREATE INDEX IF NOT EXISTS idx_cte_hashes_old_null
+            ON change_timestamp_entity (old_hash, new_hash) 
+            WHERE old_hash IS NULL;
+
+            -- Index for comment searches
+            CREATE INDEX IF NOT EXISTS idx_cte_comment 
+            ON change_timestamp_entity (comment) 
+            WHERE comment ILIKE ANY(ARRAY['%rvv%', 'rv v', '%vandal%', '%revert%', '%restore%']);
+
+            CREATE INDEX idx_reverted_lookup_vand ON reverted (revision_vandalized, property_id, value_id);
+            CREATE INDEX idx_reverted_lookup_rev ON reverted (revision_reverted, property_id, value_id);
+            CREATE INDEX idx_reverted_restore ON reverted (entity_id, property_id, value_id, time_vandalized, time_reverted) 
+            WHERE type_revert = 'restore';
+        """
+        self.sql_runner.execute_query(indexes_query)
+        logging.info('Indexes created for reverted edit classification.')
+
         with open(sql_file) as f:
             revert_edit_query = f.read()
 
         revert_edit_query = revert_edit_query.replace(":change", self.table_names['change_table']) \
                                 .replace(":revision", self.table_names["revision_table"])
-        print('Started reverted edit classification.')
+        
+        logging.info('Started reverted edit classification.')
         start_time = time.time()
         affected_rows = self.sql_runner.execute_query(revert_edit_query)
         total_time = time.time() - start_time
@@ -88,7 +128,7 @@ class SQLClassifier(Classifier):
         
         with open(sql_file) as f:
             value_refinement_query = f.read()
-        print('Started value refinement classification.')
+        logging.info('Started value refinement classification.')
         value_refinement_query = value_refinement_query.replace(":change", self.table_names['change_table'])
         affected_rows = self.sql_runner.execute_query(value_refinement_query)
 
@@ -102,7 +142,7 @@ class SQLClassifier(Classifier):
         
         with open(sql_file) as f:
             value_unrefinement_query = f.read()
-        print('Started value unrefinement classification.')
+        logging.info('Started value unrefinement classification.')
         value_unrefinement_query = value_unrefinement_query.replace(":change", self.table_names['change_table'])
         affected_rows = self.sql_runner.execute_query(value_unrefinement_query)
 
@@ -116,7 +156,7 @@ class SQLClassifier(Classifier):
         
         with open(sql_file) as f:
             sign_precision_query = f.read()
-        print('Started sign precision classification.')
+        logging.info('Started sign precision classification.')
         sign_precision_query = sign_precision_query.replace(":change", self.table_names['change_table'])
         affected_rows = self.sql_runner.execute_query(sign_precision_query)
 
@@ -130,7 +170,7 @@ class SQLClassifier(Classifier):
         
         with open(sql_file) as f:
             link_fix_query = f.read()
-        print('Started link fix classification.')
+        logging.info('Started link fix classification.')
         link_fix_query = link_fix_query.replace(":change", self.table_names['change_table'])
         self.sql_runner.execute_query(link_fix_query)
 
@@ -145,7 +185,7 @@ class SQLClassifier(Classifier):
         
         with open(sql_file) as f:
             property_replacement_query = f.read()
-        print('Started property replacement classification.')
+        logging.info('Started property replacement classification.')
         property_replacement_query = property_replacement_query.replace(":change", self.table_names['change_table'])
         affected_rows = self.sql_runner.execute_query(property_replacement_query)
 
