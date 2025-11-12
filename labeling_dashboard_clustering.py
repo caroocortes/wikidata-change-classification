@@ -6,7 +6,7 @@ import os
 # --------------------
 # FILE PATHS
 # --------------------
-DATA_FILE = "cluster_examples_string.csv"  # or whatever your clustering output file is
+DATA_FILE = "clustering/experiments/20251111_140010/cluster_examples_string.csv"  # or whatever your clustering output file is
 
 # --------------------
 # FUNCTIONS

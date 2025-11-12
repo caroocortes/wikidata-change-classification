@@ -12,6 +12,7 @@ WHERE datatype = 'time';
 UPDATE :change c
 SET value_refinement = TRUE
 WHERE 
+value_refinement = FALSE AND
 typo = FALSE AND formatting = FALSE AND
 reverted_edit = FALSE AND reversion = FALSE AND
 c.action = 'UPDATE' AND 

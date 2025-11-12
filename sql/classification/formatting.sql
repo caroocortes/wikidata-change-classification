@@ -6,6 +6,7 @@ ADD COLUMN IF NOT EXISTS formatting BOOLEAN DEFAULT FALSE;
 UPDATE :change c
 SET formatting = TRUE
 WHERE 
+	formatting = FALSE AND
 	c.datatype NOT IN ('wikibase-item', 'wikibase-entityid','wikibase-property','wikibase-lexeme','wikibase-sense','wikibase-form','entity-schema', 'globecoordinate') AND
 	reverted_edit = FALSE AND reversion = FALSE AND 
 	c.action = 'UPDATE' AND target = 'PROPERTY_VALUE' AND

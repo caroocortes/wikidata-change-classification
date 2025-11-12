@@ -1,0 +1,16 @@
+Dataset stats - 105/2125 files (20%) 
+
+Number of change: 59.284.666
+
+Number of creates: 47.508.565 
+Number of deletes: 7.859.208
+Number of updates: 3.916.893
+
+
+Number of value updates: 2.747.935
+
+Number of string updates: 1.543.790
+Number of entity updates: 952.040
+Number of quantity updates: 119.950
+Number of time updates: 104.913
+Number of globecoordinate updates: 26.913

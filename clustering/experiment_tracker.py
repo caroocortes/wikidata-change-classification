@@ -3,7 +3,7 @@ from datetime import datetime
 from pathlib import Path
 
 class ExperimentTracker:
-    def __init__(self, experiments_dir='experiments'):
+    def __init__(self, experiments_dir='clustering/experiments'):
         self.experiments_dir = Path(experiments_dir)
         self.experiments_dir.mkdir(exist_ok=True)
         self.timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -36,7 +36,7 @@ class ExperimentTracker:
     
     def save_text(self, text, name):
         """Save text output"""
-        with open(self.experiment_dir / f'{name}.txt', 'w') as f:
+        with open(self.experiment_dir / name, 'w') as f:
             f.write(text)
     
     def get_summary(self):

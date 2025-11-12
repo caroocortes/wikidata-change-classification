@@ -1,0 +1,5 @@
+nohup: ignoring input
+2025-11-07 14:27:13,159 [INFO] Finished link fix classification. Took 24.309026956558228 seconds.
+2025-11-07 14:43:14,613 [INFO] Finished property replacement classification. Took 961.4534859657288 seconds. Affected 1,010,492 rows
+Start running SQL classification.
+Finished running SQL classification. Took: 985.7637786865234 seconds

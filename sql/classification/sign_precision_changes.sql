@@ -8,7 +8,7 @@ SET precision_change = TRUE
 WHERE 
 NOT (
 formatting OR typo OR value_refinement OR value_unrefinement OR
-reverted_edit OR reversion) AND
+reverted_edit OR reversion OR precision_change) AND
 action = 'UPDATE' AND 
 target = 'PROPERTY_VALUE' AND
 (
@@ -18,7 +18,7 @@ target = 'PROPERTY_VALUE' AND
         -- they both have precision
         REGEXP_REPLACE(new_value->>0, '[,]', '.', 'g') ~ '[.]' AND 
         REGEXP_REPLACE(old_value->>0, '[,]', '.', 'g') ~ '[.]' AND
-        levenshtein(SPLIT_PART(REGEXP_REPLACE(new_value->>0, '[,]', '.', 'g'), '.', 2), SPLIT_PART(REGEXP_REPLACE(old_value->>0, '[,]', '.', 'g'), '.', 2)) <= 3
+        INT(SPLIT_PART(REGEXP_REPLACE(new_value->>0, '[,]', '.', 'g'), '.', 2)) - INT(SPLIT_PART(REGEXP_REPLACE(old_value->>0, '[,]', '.', 'g'), '.', 2)) <= 3
     )
     OR 
     (
@@ -28,14 +28,14 @@ target = 'PROPERTY_VALUE' AND
 				new_value != '{}' AND old_value != '{}' AND
                 REGEXP_REPLACE(new_value->>'latitude', '[,]', '.', 'g') ~ '[.]' AND 
                 REGEXP_REPLACE(old_value->>'latitude', '[,]', '.', 'g') ~ '[.]' AND
-                levenshtein(SPLIT_PART(REGEXP_REPLACE(new_value->>'latitude', '[,]', '.', 'g'), '.', 2), SPLIT_PART(REGEXP_REPLACE(old_value->>'latitude', '[,]', '.', 'g'), '.', 2)) <= 3
+                INT(SPLIT_PART(REGEXP_REPLACE(new_value->>'latitude', '[,]', '.', 'g'), '.', 2)) - INT(SPLIT_PART(REGEXP_REPLACE(old_value->>'latitude', '[,]', '.', 'g'), '.', 2)) <= 3
             )
             OR
             (
 				new_value != '{}' AND old_value != '{}' AND
                 REGEXP_REPLACE(new_value->>'longitude', '[,]', '.', 'g') ~ '[.]' AND 
                 REGEXP_REPLACE(old_value->>'longitude', '[,]', '.', 'g') ~ '[.]' AND
-                levenshtein(SPLIT_PART(REGEXP_REPLACE(new_value->>'longitude', '[,]', '.', 'g'), '.', 2), SPLIT_PART(REGEXP_REPLACE(old_value->>'longitude', '[,]', '.', 'g'), '.', 2)) <= 3
+                INT(SPLIT_PART(REGEXP_REPLACE(new_value->>'longitude', '[,]', '.', 'g'), '.', 2)) - INT(SPLIT_PART(REGEXP_REPLACE(old_value->>'longitude', '[,]', '.', 'g'), '.', 2)) <= 3
             )
         )
     )

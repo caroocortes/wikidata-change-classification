@@ -1,0 +1,23 @@
+nohup: ignoring input
+Connecting to database...
+Connected to database.
+
+Going to extract data from db
+Executing query...
+Fetching first batch...
+Query executed successfully. Columns: 24
+Fetched chunk 1: 50,000 rows total
+Fetched chunk 2: 100,000 rows total
+Fetched chunk 3: 150,000 rows total
+Fetched chunk 4: 200,000 rows total
+Fetched chunk 5: 250,000 rows total
+Fetched chunk 6: 300,000 rows total
+Fetched chunk 7: 350,000 rows total
+Fetched chunk 8: 400,000 rows total
+Fetched chunk 9: 450,000 rows total
+Fetched chunk 10: 500,000 rows total
+Fetched chunk 11: 516,380 rows total
+Combining 11 chunks...
+Total rows fetched: 516,380
+Saved 516,380 rows to data/changes_for_clustering_string_updates.parquet
+Extracted data from db in 72.82605123519897 seconds

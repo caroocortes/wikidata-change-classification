@@ -41,7 +41,7 @@ class SQLClassifier(Classifier):
 
         with open(sql_file) as f:
             formatting_query = f.read()
-        
+        print('Started formatting classification.')
         formatting_query = formatting_query.replace(":change", self.table_names['change_table'])
         affected_rows = self.sql_runner.execute_query(formatting_query)
         
@@ -50,12 +50,11 @@ class SQLClassifier(Classifier):
 
     def run_typo_classification(self):
         
-        
         sql_file = self.sql_dir / 'typo_detection.sql'
         
         with open(sql_file) as f:
             typo_query = f.read()
-
+        print('Started typo classification.')
         typo_query = typo_query.replace(":change_metadata", self.table_names["change_metadata_table"]) \
                                 .replace(":change", self.table_names['change_table']) \
                                 .replace(":revision", self.table_names["revision_table"])
@@ -68,7 +67,6 @@ class SQLClassifier(Classifier):
 
     def run_reverted_edit_classification(self):
         
-        
         sql_file = self.sql_dir / 'revert_edits.sql'
         
         with open(sql_file) as f:
@@ -76,7 +74,7 @@ class SQLClassifier(Classifier):
 
         revert_edit_query = revert_edit_query.replace(":change", self.table_names['change_table']) \
                                 .replace(":revision", self.table_names["revision_table"])
-        
+        print('Started reverted edit classification.')
         start_time = time.time()
         affected_rows = self.sql_runner.execute_query(revert_edit_query)
         total_time = time.time() - start_time
@@ -90,7 +88,7 @@ class SQLClassifier(Classifier):
         
         with open(sql_file) as f:
             value_refinement_query = f.read()
-        
+        print('Started value refinement classification.')
         value_refinement_query = value_refinement_query.replace(":change", self.table_names['change_table'])
         affected_rows = self.sql_runner.execute_query(value_refinement_query)
 
@@ -104,7 +102,7 @@ class SQLClassifier(Classifier):
         
         with open(sql_file) as f:
             value_unrefinement_query = f.read()
-        
+        print('Started value unrefinement classification.')
         value_unrefinement_query = value_unrefinement_query.replace(":change", self.table_names['change_table'])
         affected_rows = self.sql_runner.execute_query(value_unrefinement_query)
 
@@ -118,7 +116,7 @@ class SQLClassifier(Classifier):
         
         with open(sql_file) as f:
             sign_precision_query = f.read()
-        
+        print('Started sign precision classification.')
         sign_precision_query = sign_precision_query.replace(":change", self.table_names['change_table'])
         affected_rows = self.sql_runner.execute_query(sign_precision_query)
 
@@ -131,10 +129,10 @@ class SQLClassifier(Classifier):
         sql_file = self.sql_dir / 'link_fix.sql'
         
         with open(sql_file) as f:
-            value_unrefinement_query = f.read()
-        
-        value_unrefinement_query = value_unrefinement_query.replace(":change", self.table_names['change_table'])
-        self.sql_runner.execute_query(value_unrefinement_query)
+            link_fix_query = f.read()
+        print('Started link fix classification.')
+        link_fix_query = link_fix_query.replace(":change", self.table_names['change_table'])
+        self.sql_runner.execute_query(link_fix_query)
 
         total_time = time.time() - start_time
         logging.info(f'Finished link fix classification. Took {total_time} seconds.')
@@ -147,7 +145,7 @@ class SQLClassifier(Classifier):
         
         with open(sql_file) as f:
             property_replacement_query = f.read()
-        
+        print('Started property replacement classification.')
         property_replacement_query = property_replacement_query.replace(":change", self.table_names['change_table'])
         affected_rows = self.sql_runner.execute_query(property_replacement_query)
 
@@ -159,9 +157,6 @@ class SQLClassifier(Classifier):
 
         # query = f"""
         #     DROP MATERIALIZED VIEW IF EXISTS change_timestamp_entity;
-
-        #     ALTER TABLE {self.table_names['change_table']}
-        #     DROP COLUMN IF EXISTS typo, DROP COLUMN IF EXISTS formatting, DROP COLUMN IF EXISTS value_refinement, DROP COLUMN IF EXISTS value_unrefinement, DROP COLUMN IF EXISTS reverted_edit, DROP COLUMN IF EXISTS reversion;
         # """
         # res = self.sql_runner.execute_query(query)
 
@@ -195,11 +190,11 @@ class SQLClassifier(Classifier):
 
         # logging.info(f'Running change classification: {num_changes:,} changes, {num_revisions:,} revisions, {num_files:,} files, {num_entities:,} entities.')
 
-        # self.run_reverted_edit_classification()
-        # self.run_formatting_classification()
-        # self.run_typo_classification()
-        # self.run_value_refinement_classification()
-        # self.run_value_unrefinement_classification()
-        # self.run_sign_precision_classification()
+        self.run_reverted_edit_classification()
+        self.run_formatting_classification()
+        self.run_typo_classification()
+        self.run_value_refinement_classification()
+        self.run_value_unrefinement_classification()
+        self.run_sign_precision_classification()
         self.link_fix_classification()
         self.run_property_replacement_classification()

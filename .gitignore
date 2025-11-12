@@ -16,3 +16,7 @@ config/db_config.yml
 .DS_Store
 
 logs/*
+clustering/experiments/*
+data/*
+clustering/data/*
+config/*

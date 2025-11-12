@@ -4,6 +4,7 @@ ADD COLUMN IF NOT EXISTS link_fix BOOLEAN DEFAULT FALSE;
 UPDATE :change c
 SET link_fix = TRUE
 WHERE 
+	link_fix = FALSE AND
 	c.datatype IN ('wikibase-item', 'wikibase-entityid','wikibase-property','wikibase-lexeme','wikibase-sense','wikibase-form','entity-schema', 'globecoordinate') AND
 	reverted_edit = FALSE AND reversion = FALSE AND
 	c.action = 'UPDATE' AND target = 'PROPERTY_VALUE' AND

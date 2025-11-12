@@ -12,6 +12,7 @@ WHERE datatype = 'time';
 UPDATE :change c
 SET value_unrefinement = TRUE
 WHERE 
+value_unrefinement = FALSE AND
 reverted_edit = FALSE AND reversion = FALSE AND
 typo = FALSE AND formatting = FALSE AND
 c.action = 'UPDATE' AND 

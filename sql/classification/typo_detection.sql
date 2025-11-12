@@ -28,7 +28,7 @@ WITH change_with_stability AS (
         LEFT JOIN -- uses FK of revision_id, property_id, value_id, change_target
         :change_metadata cm ON c.revision_id = cm.revision_id AND c.property_id = cm.property_id AND c.value_id = cm.value_id AND c.change_target = cm.change_target
 	WHERE 
-        reverted_edit = FALSE AND reversion = FALSE AND
+        reverted_edit = FALSE AND reversion = FALSE AND typo = FALSE AND
         c.action = 'UPDATE' AND 
 		c.target = 'PROPERTY_VALUE' AND
         cm.value > 0 AND
@@ -42,6 +42,7 @@ UPDATE :change c
 SET typo = TRUE
 FROM change_with_stability cws
 WHERE 
+typo = FALSE AND 
 formatting = FALSE AND -- so it doesn't overlap with formatting changes
 c.datatype IN ('monolingualtext', 'string', 'url', 'commonsMedia', 'geo-shape', 'tabular-data', 'math', 'musical-notation') AND
 reverted_edit = FALSE AND reversion = FALSE AND
