@@ -36,17 +36,19 @@ if "__main__":
     if config.change_target == 'value':
         df_filtered = df_filtered[df_filtered['datatype'] == config.datatype].copy()
 
-    if config.features_path == '':
+    if config.features_path is None:
         if config.datatype == 'string':
             df_filtered, feature_cols = create_text_features(df_filtered, [], semantic_similarity=True)
             features_cols_change_id = feature_cols + ['revision_id', 'property_id', 'value_id', 'change_target']
             features_df = df_filtered[features_cols_change_id].copy()
-            features_df.to_parquet(f'{config.datatype}_features.parquet', compression='snappy')
+
+            features_df.to_parquet(f'{config.cluster_dir}/data/{config.datatype}_features.parquet', compression='snappy')
     else:
         features_df = pd.read_parquet(config.features_path)
     
     # only use the features for clustering, but saved with change id
     features_df = features_df.drop(columns=['revision_id', 'property_id', 'value_id', 'change_target'], errors='ignore')
+    features_df = features_df.astype(float)
     features_df = features_df.fillna(0)
 
     zero_std_cols = features_df.columns[features_df.std() == 0]

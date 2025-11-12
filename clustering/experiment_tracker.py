@@ -3,7 +3,7 @@ from datetime import datetime
 from pathlib import Path
 
 class ExperimentTracker:
-    def __init__(self, experiments_dir='clustering/experiments'):
+    def __init__(self, experiments_dir='experiments'):
         self.experiments_dir = Path(experiments_dir)
         self.experiments_dir.mkdir(exist_ok=True)
         self.timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
