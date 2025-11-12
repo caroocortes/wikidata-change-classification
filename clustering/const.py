@@ -35,10 +35,7 @@ class Config:
 
     # Data paths
     data_path: Path = data_dir / DATA_FILE_PATH
-    if FEATURES_FILE_PATH:
-        features_path: Path = cluster_dir / 'features' / FEATURES_FILE_PATH
-    else:
-        features_path: Path = None
+    features_path: Path = FEATURES_FILE_PATH
 
     # Change filtering
     change_target: str = CHANGE_TARGET

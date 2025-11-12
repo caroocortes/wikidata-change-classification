@@ -18,5 +18,4 @@ config/db_config.yml
 logs/*
 clustering/experiments/*
 data/*
-clustering/data/*
 config/*

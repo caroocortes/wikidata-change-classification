@@ -42,8 +42,8 @@ if "__main__":
             df_filtered, feature_cols = create_text_features(df_filtered, [], semantic_similarity=True)
             features_cols_change_id = feature_cols + ['revision_id', 'property_id', 'value_id', 'change_target']
             features_df = df_filtered[features_cols_change_id].copy()
-            os.makedirs(f'{config.cluster_dir}/features', exist_ok=True)
-            features_df.to_parquet(f'{config.cluster_dir}/features/{config.datatype}_features.parquet', compression='snappy')
+            os.makedirs(f'{tracker.experiment_dir}', exist_ok=True)
+            features_df.to_parquet(f'{tracker.experiment_dir}/{config.datatype}_features.parquet', compression='snappy')
     else:
         features_df = pd.read_parquet(config.features_path)
     
