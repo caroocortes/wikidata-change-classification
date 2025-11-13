@@ -66,6 +66,11 @@ WHERE
 -- 		TAG CHANGES
 -- =================================================================
 
+CREATE INDEX idx_reverted_lookup_vand ON reverted (revision_vandalized, property_id, value_id);
+CREATE INDEX idx_reverted_lookup_rev ON reverted (revision_reverted, property_id, value_id);
+CREATE INDEX idx_reverted_restore ON reverted (entity_id, property_id, value_id, time_vandalized, time_reverted) 
+WHERE type_revert = 'restore';
+
 -- Update reverted edits 
 UPDATE :change c
 SET reverted_edit = TRUE

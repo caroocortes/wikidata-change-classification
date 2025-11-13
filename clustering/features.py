@@ -359,18 +359,19 @@ def create_globe_coordinate_features(df, feature_cols):
 ##############################
 # Genearl feature extraction
 ##############################
-def create_entity_features(df, feature_cols):
+def create_entity_features(df, feature_cols, semantic_similarity=True):
     """Extract features for entity datatypes using labels"""
     entity_mask = df['datatype'].isin(WD_ENTITY_TYPES)
     
     print(f"Processing {entity_mask.sum()} entity changes.")
     df, feature_cols = extract_text_features(df, 'old_value_label', 'new_value_label', entity_mask)
 
-    print('Creating semantic similarity from embeddings.')
-    start_time = time.time()
-    df, feature_cols = create_semantic_similarity_features(df, 'old_value_label', 'new_value_label', feature_cols, entity_mask)
-    end_time = time.time()
-    print(f"Semantic similarity features created in {end_time - start_time:.2f} seconds.")
+    if semantic_similarity:
+        print('Creating semantic similarity from embeddings.')
+        start_time = time.time()
+        df, feature_cols = create_semantic_similarity_features(df, 'old_value_label', 'new_value_label', feature_cols, entity_mask)
+        end_time = time.time()
+        print(f"Semantic similarity features created in {end_time - start_time:.2f} seconds.")
     
     return df, feature_cols
 

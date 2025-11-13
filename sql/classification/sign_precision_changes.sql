@@ -18,7 +18,7 @@ target = 'PROPERTY_VALUE' AND
         -- they both have precision
         REGEXP_REPLACE(new_value->>0, '[,]', '.', 'g') ~ '[.]' AND 
         REGEXP_REPLACE(old_value->>0, '[,]', '.', 'g') ~ '[.]' AND
-        INT(SPLIT_PART(REGEXP_REPLACE(new_value->>0, '[,]', '.', 'g'), '.', 2)) - INT(SPLIT_PART(REGEXP_REPLACE(old_value->>0, '[,]', '.', 'g'), '.', 2)) <= 3
+        (SPLIT_PART(REGEXP_REPLACE(new_value->>0, '[,]', '.', 'g'), '.', 2))::NUMERIC - (SPLIT_PART(REGEXP_REPLACE(old_value->>0, '[,]', '.', 'g'), '.', 2))::NUMERIC <= 3
     )
     OR 
     (
@@ -28,14 +28,14 @@ target = 'PROPERTY_VALUE' AND
 				new_value != '{}' AND old_value != '{}' AND
                 REGEXP_REPLACE(new_value->>'latitude', '[,]', '.', 'g') ~ '[.]' AND 
                 REGEXP_REPLACE(old_value->>'latitude', '[,]', '.', 'g') ~ '[.]' AND
-                INT(SPLIT_PART(REGEXP_REPLACE(new_value->>'latitude', '[,]', '.', 'g'), '.', 2)) - INT(SPLIT_PART(REGEXP_REPLACE(old_value->>'latitude', '[,]', '.', 'g'), '.', 2)) <= 3
+                (SPLIT_PART(REGEXP_REPLACE(new_value->>'latitude', '[,]', '.', 'g'), '.', 2))::NUMERIC - (SPLIT_PART(REGEXP_REPLACE(old_value->>'latitude', '[,]', '.', 'g'), '.', 2))::NUMERIC <= 3
             )
             OR
             (
 				new_value != '{}' AND old_value != '{}' AND
                 REGEXP_REPLACE(new_value->>'longitude', '[,]', '.', 'g') ~ '[.]' AND 
                 REGEXP_REPLACE(old_value->>'longitude', '[,]', '.', 'g') ~ '[.]' AND
-                INT(SPLIT_PART(REGEXP_REPLACE(new_value->>'longitude', '[,]', '.', 'g'), '.', 2)) - INT(SPLIT_PART(REGEXP_REPLACE(old_value->>'longitude', '[,]', '.', 'g'), '.', 2)) <= 3
+                (SPLIT_PART(REGEXP_REPLACE(new_value->>'longitude', '[,]', '.', 'g'), '.', 2))::NUMERIC - (SPLIT_PART(REGEXP_REPLACE(old_value->>'longitude', '[,]', '.', 'g'), '.', 2))::NUMERIC <= 3
             )
         )
     )

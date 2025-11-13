@@ -100,10 +100,6 @@ class SQLClassifier(Classifier):
             ON change_timestamp_entity (comment) 
             WHERE comment ILIKE ANY(ARRAY['%rvv%', 'rv v', '%vandal%', '%revert%', '%restore%']);
 
-            CREATE INDEX idx_reverted_lookup_vand ON reverted (revision_vandalized, property_id, value_id);
-            CREATE INDEX idx_reverted_lookup_rev ON reverted (revision_reverted, property_id, value_id);
-            CREATE INDEX idx_reverted_restore ON reverted (entity_id, property_id, value_id, time_vandalized, time_reverted) 
-            WHERE type_revert = 'restore';
         """
         self.sql_runner.execute_query(indexes_query)
         logging.info('Indexes created for reverted edit classification.')
@@ -230,11 +226,11 @@ class SQLClassifier(Classifier):
 
         # logging.info(f'Running change classification: {num_changes:,} changes, {num_revisions:,} revisions, {num_files:,} files, {num_entities:,} entities.')
 
-        self.run_reverted_edit_classification()
-        self.run_formatting_classification()
-        self.run_typo_classification()
-        self.run_value_refinement_classification()
-        self.run_value_unrefinement_classification()
+        # self.run_reverted_edit_classification()
+        # self.run_formatting_classification()
+        # self.run_typo_classification()
+        # self.run_value_refinement_classification()
+        # self.run_value_unrefinement_classification()
         self.run_sign_precision_classification()
         self.link_fix_classification()
         self.run_property_replacement_classification()
