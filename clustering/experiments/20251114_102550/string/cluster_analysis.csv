@@ -1,0 +1,240 @@
+CLUSTERING ANALYSIS - 9 clusters
+================================================================================
+
+Total samples: 560,759
+Cluster sizes:
+  Cluster 0: 19,812 (3.5%)
+  Cluster 1: 110,190 (19.7%)
+  Cluster 2: 166,133 (29.6%)
+  Cluster 3: 19,770 (3.5%)
+  Cluster 4: 11 (0.0%)
+  Cluster 5: 116,572 (20.8%)
+  Cluster 6: 106,576 (19.0%)
+  Cluster 7: 2,858 (0.5%)
+  Cluster 8: 18,837 (3.4%)
+
+
+================================================================================
+CLUSTER 0 (n=19,812, 3.5%)
+================================================================================
+
+USER TYPE:
+  bot: 14,893 (75.2%)
+  human: 3,921 (19.8%)
+  anonymous: 998 (5.0%)
+
+TOP 10 PROPERTIES:
+  6394 (ELNET ID): 7,358 (37.1%)
+  409 (Libraries Australia ID): 1,953 (9.9%)
+  1015 (NORAF ID): 1,492 (7.5%)
+  679 (ZVG number): 1,189 (6.0%)
+  2191 (Vegetti Catalog of Fantastic Literature NILF ID): 1,063 (5.4%)
+  715 (DrugBank ID): 824 (4.2%)
+  -1 (label): 608 (3.1%)
+  856 (official website): 579 (2.9%)
+  268 (Bibliothèque nationale de France ID): 502 (2.5%)
+  2163 (FAST ID): 344 (1.7%)
+
+LEVENSHTEIN DISTANCE:
+  Mean: 2.99
+  Range: [1.00-87.00]
+
+
+================================================================================
+CLUSTER 1 (n=110,190, 19.7%)
+================================================================================
+
+USER TYPE:
+  human: 82,305 (74.7%)
+  bot: 16,328 (14.8%)
+  anonymous: 11,557 (10.5%)
+
+TOP 10 PROPERTIES:
+  -2 (description): 51,266 (46.5%)
+  18 (image): 30,920 (28.1%)
+  -1 (label): 10,190 (9.2%)
+  373 (Commons category): 2,224 (2.0%)
+  242 (locator map image): 1,917 (1.7%)
+  94 (coat of arms image): 1,830 (1.7%)
+  856 (official website): 1,747 (1.6%)
+  1559 (name in native language): 823 (0.7%)
+  1477 (birth name): 747 (0.7%)
+  154 (logo image): 663 (0.6%)
+
+LEVENSHTEIN DISTANCE:
+  Mean: 26.54
+  Range: [1.00-141.00]
+
+
+================================================================================
+CLUSTER 2 (n=166,133, 29.6%)
+================================================================================
+
+USER TYPE:
+  bot: 89,456 (53.8%)
+  human: 66,971 (40.3%)
+  anonymous: 9,706 (5.8%)
+
+TOP 10 PROPERTIES:
+  1695 (NLP ID): 32,260 (19.4%)
+  214 (VIAF cluster ID): 24,220 (14.6%)
+  856 (official website): 13,558 (8.2%)
+  -2 (description): 7,271 (4.4%)
+  18 (image): 6,734 (4.1%)
+  1421 (GRIN URL): 5,937 (3.6%)
+  2369 (Soccerway player ID): 5,634 (3.4%)
+  5504 (RISM ID): 5,524 (3.3%)
+  396 (SBN author ID): 5,264 (3.2%)
+  -1 (label): 5,206 (3.1%)
+
+LEVENSHTEIN DISTANCE:
+  Mean: 8.95
+  Range: [1.00-84.00]
+
+
+================================================================================
+CLUSTER 3 (n=19,770, 3.5%)
+================================================================================
+
+USER TYPE:
+  human: 17,150 (86.7%)
+  anonymous: 2,017 (10.2%)
+  bot: 603 (3.1%)
+
+TOP 10 PROPERTIES:
+  -2 (description): 12,855 (65.0%)
+  18 (image): 5,291 (26.8%)
+  242 (locator map image): 610 (3.1%)
+  3553 (Zhihu topic ID): 139 (0.7%)
+  94 (coat of arms image): 101 (0.5%)
+  -1 (label): 92 (0.5%)
+  1442 (image of grave): 79 (0.4%)
+  2534 (defining formula): 63 (0.3%)
+  856 (official website): 49 (0.2%)
+  109 (signature): 34 (0.2%)
+
+LEVENSHTEIN DISTANCE:
+  Mean: 78.02
+  Range: [1.00-1455.00]
+
+
+================================================================================
+CLUSTER 4 (n=11, 0.0%)
+================================================================================
+
+USER TYPE:
+  human: 11 (100.0%)
+
+TOP 10 PROPERTIES:
+  1157 (US Congress Bio ID): 9 (81.8%)
+  214 (VIAF cluster ID): 1 (9.1%)
+  1394 (Glottolog code): 1 (9.1%)
+
+LEVENSHTEIN DISTANCE:
+  Mean: 1.00
+  Range: [1.00-1.00]
+
+
+================================================================================
+CLUSTER 5 (n=116,572, 20.8%)
+================================================================================
+
+USER TYPE:
+  human: 54,388 (46.7%)
+  bot: 53,036 (45.5%)
+  anonymous: 9,148 (7.8%)
+
+TOP 10 PROPERTIES:
+  -2 (description): 88,978 (76.3%)
+  18 (image): 7,679 (6.6%)
+  -1 (label): 6,435 (5.5%)
+  373 (Commons category): 2,720 (2.3%)
+  94 (coat of arms image): 2,551 (2.2%)
+  242 (locator map image): 1,403 (1.2%)
+  41 (flag image): 1,147 (1.0%)
+  1477 (birth name): 905 (0.8%)
+  1559 (name in native language): 836 (0.7%)
+  154 (logo image): 690 (0.6%)
+
+LEVENSHTEIN DISTANCE:
+  Mean: 5.62
+  Range: [1.00-61.00]
+
+
+================================================================================
+CLUSTER 6 (n=106,576, 19.0%)
+================================================================================
+
+USER TYPE:
+  human: 76,587 (71.9%)
+  bot: 19,867 (18.6%)
+  anonymous: 10,122 (9.5%)
+
+TOP 10 PROPERTIES:
+  -2 (description): 16,523 (15.5%)
+  18 (image): 12,044 (11.3%)
+  214 (VIAF cluster ID): 11,039 (10.4%)
+  856 (official website): 10,133 (9.5%)
+  -1 (label): 7,938 (7.4%)
+  373 (Commons category): 3,534 (3.3%)
+  94 (coat of arms image): 3,393 (3.2%)
+  564 (singles record): 2,762 (2.6%)
+  555 (doubles record): 2,462 (2.3%)
+  242 (locator map image): 1,711 (1.6%)
+
+LEVENSHTEIN DISTANCE:
+  Mean: 10.69
+  Range: [1.00-74.00]
+
+
+================================================================================
+CLUSTER 7 (n=2,858, 0.5%)
+================================================================================
+
+USER TYPE:
+  human: 1,526 (53.4%)
+  anonymous: 785 (27.5%)
+  bot: 547 (19.1%)
+
+TOP 10 PROPERTIES:
+  -2 (description): 709 (24.8%)
+  -1 (label): 709 (24.8%)
+  1559 (name in native language): 429 (15.0%)
+  1477 (birth name): 237 (8.3%)
+  1705 (native label): 184 (6.4%)
+  1448 (official name): 183 (6.4%)
+  1476 (title): 120 (4.2%)
+  1449 (nickname): 80 (2.8%)
+  1549 (demonym): 67 (2.3%)
+  1813 (short name): 38 (1.3%)
+
+LEVENSHTEIN DISTANCE:
+  Mean: 16.24
+  Range: [1.00-202.00]
+
+
+================================================================================
+CLUSTER 8 (n=18,837, 3.4%)
+================================================================================
+
+USER TYPE:
+  bot: 12,855 (68.2%)
+  human: 4,888 (25.9%)
+  anonymous: 1,094 (5.8%)
+
+TOP 10 PROPERTIES:
+  6394 (ELNET ID): 7,500 (39.8%)
+  782 (LAU): 1,386 (7.4%)
+  268 (Bibliothèque nationale de France ID): 1,061 (5.6%)
+  3788 (BNMM authority ID): 1,044 (5.5%)
+  1368 (National Library of Latvia ID): 1,019 (5.4%)
+  -2 (description): 1,008 (5.4%)
+  1273 (CANTIC ID (former scheme)): 766 (4.1%)
+  -1 (label): 684 (3.6%)
+  721 (OKATO ID): 283 (1.5%)
+  1296 (Gran Enciclopèdia Catalana ID (former scheme)): 272 (1.4%)
+
+LEVENSHTEIN DISTANCE:
+  Mean: 2.97
+  Range: [0.00-76.00]
+

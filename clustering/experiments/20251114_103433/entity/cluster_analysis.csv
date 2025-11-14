@@ -1,0 +1,192 @@
+CLUSTERING ANALYSIS - 7 clusters
+================================================================================
+
+Total samples: 443,810
+Cluster sizes:
+  Cluster 0: 12,182 (2.7%)
+  Cluster 1: 282,927 (63.7%)
+  Cluster 2: 72 (0.0%)
+  Cluster 3: 46,495 (10.5%)
+  Cluster 4: 129 (0.0%)
+  Cluster 5: 75,782 (17.1%)
+  Cluster 6: 26,223 (5.9%)
+
+
+================================================================================
+CLUSTER 0 (n=12,182, 2.7%)
+================================================================================
+
+USER TYPE:
+  bot: 5,944 (48.8%)
+  human: 5,495 (45.1%)
+  anonymous: 743 (6.1%)
+
+TOP 10 PROPERTIES:
+  31 (instance of): 1,498 (12.3%)
+  735 (given name): 1,467 (12.0%)
+  106 (occupation): 1,062 (8.7%)
+  1196 (manner of death): 1,001 (8.2%)
+  27 (country of citizenship): 746 (6.1%)
+  101 (field of work): 691 (5.7%)
+  279 (subclass of): 533 (4.4%)
+  734 (family name): 412 (3.4%)
+  910 (topic's main category): 306 (2.5%)
+  19 (None): 176 (1.4%)
+
+LEVENSHTEIN DISTANCE:
+  Mean: 4.65
+  Range: [0.00-35.00]
+
+
+================================================================================
+CLUSTER 1 (n=282,927, 63.7%)
+================================================================================
+
+USER TYPE:
+  human: 144,316 (51.0%)
+  bot: 110,324 (39.0%)
+  anonymous: 28,287 (10.0%)
+
+TOP 10 PROPERTIES:
+  31 (instance of): 47,829 (16.9%)
+  106 (occupation): 23,345 (8.3%)
+  735 (given name): 22,464 (7.9%)
+  131 (located in the administrative territorial entity): 14,385 (5.1%)
+  27 (country of citizenship): 14,218 (5.0%)
+  19 (None): 11,395 (4.0%)
+  279 (subclass of): 10,549 (3.7%)
+  140 (religion or worldview): 6,749 (2.4%)
+  734 (family name): 6,149 (2.2%)
+  910 (topic's main category): 5,787 (2.0%)
+
+LEVENSHTEIN DISTANCE:
+  Mean: 10.19
+  Range: [1.00-31.00]
+
+
+================================================================================
+CLUSTER 2 (n=72, 0.0%)
+================================================================================
+
+USER TYPE:
+  human: 71 (98.6%)
+  anonymous: 1 (1.4%)
+
+TOP 10 PROPERTIES:
+  166 (award received): 62 (86.1%)
+  734 (family name): 3 (4.2%)
+  19 (None): 1 (1.4%)
+  276 (location): 1 (1.4%)
+  118 (league or competition): 1 (1.4%)
+  463 (member of): 1 (1.4%)
+  1830 (owner of): 1 (1.4%)
+  180 (depicts): 1 (1.4%)
+  2283 (uses): 1 (1.4%)
+
+LEVENSHTEIN DISTANCE:
+  Mean: 1.86
+  Range: [1.00-2.00]
+
+
+================================================================================
+CLUSTER 3 (n=46,495, 10.5%)
+================================================================================
+
+USER TYPE:
+  human: 40,034 (86.1%)
+  anonymous: 4,114 (8.8%)
+  bot: 2,347 (5.0%)
+
+TOP 10 PROPERTIES:
+  31 (instance of): 9,625 (20.7%)
+  166 (award received): 3,130 (6.7%)
+  39 (position held): 2,813 (6.1%)
+  136 (genre): 2,252 (4.8%)
+  527 (has part(s)): 2,159 (4.6%)
+  279 (subclass of): 2,051 (4.4%)
+  131 (located in the administrative territorial entity): 1,724 (3.7%)
+  106 (occupation): 1,430 (3.1%)
+  132 (None): 1,173 (2.5%)
+  3373 (sibling): 1,040 (2.2%)
+
+LEVENSHTEIN DISTANCE:
+  Mean: 11.08
+  Range: [1.00-61.00]
+
+
+================================================================================
+CLUSTER 4 (n=129, 0.0%)
+================================================================================
+
+USER TYPE:
+  human: 123 (95.3%)
+  anonymous: 6 (4.7%)
+
+TOP 10 PROPERTIES:
+  413 (position played on team / speciality): 83 (64.3%)
+  735 (given name): 9 (7.0%)
+  361 (part of): 5 (3.9%)
+  410 (military or police rank): 4 (3.1%)
+  1366 (replaced by): 4 (3.1%)
+  47 (shares border with): 3 (2.3%)
+  136 (genre): 3 (2.3%)
+  1532 (country for sport): 2 (1.6%)
+  20 (place of death): 2 (1.6%)
+  1454 (legal form): 2 (1.6%)
+
+LEVENSHTEIN DISTANCE:
+  Mean: 1.08
+  Range: [1.00-3.00]
+
+
+================================================================================
+CLUSTER 5 (n=75,782, 17.1%)
+================================================================================
+
+USER TYPE:
+  bot: 56,553 (74.6%)
+  human: 16,674 (22.0%)
+  anonymous: 2,555 (3.4%)
+
+TOP 10 PROPERTIES:
+  107 (None): 50,106 (66.1%)
+  31 (instance of): 6,889 (9.1%)
+  131 (located in the administrative territorial entity): 1,773 (2.3%)
+  279 (subclass of): 1,683 (2.2%)
+  19 (None): 1,176 (1.6%)
+  39 (position held): 1,129 (1.5%)
+  106 (occupation): 990 (1.3%)
+  166 (award received): 756 (1.0%)
+  101 (field of work): 711 (0.9%)
+  69 (educated at): 639 (0.8%)
+
+LEVENSHTEIN DISTANCE:
+  Mean: 24.95
+  Range: [8.00-147.00]
+
+
+================================================================================
+CLUSTER 6 (n=26,223, 5.9%)
+================================================================================
+
+USER TYPE:
+  bot: 14,700 (56.1%)
+  human: 10,428 (39.8%)
+  anonymous: 1,095 (4.2%)
+
+TOP 10 PROPERTIES:
+  166 (award received): 4,178 (15.9%)
+  39 (position held): 2,764 (10.5%)
+  31 (instance of): 2,694 (10.3%)
+  40 (child): 1,787 (6.8%)
+  910 (topic's main category): 1,183 (4.5%)
+  703 (found in taxon): 651 (2.5%)
+  1792 (category of associated people): 640 (2.4%)
+  131 (located in the administrative territorial entity): 615 (2.3%)
+  1344 (participant in): 515 (2.0%)
+  279 (subclass of): 484 (1.8%)
+
+LEVENSHTEIN DISTANCE:
+  Mean: 35.35
+  Range: [15.00-207.00]
+
