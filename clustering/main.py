@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import logging
 
+from const import Config, WD_ENTITY_TYPES, WD_STRING_TYPES
 from cluster import perform_clustering, find_optimal_k, analyze_clusters
 from features import create_text_features, create_quantity_features, create_globe_coordinate_features, create_time_features, create_entity_features
 from experiment_tracker import ExperimentTracker
@@ -50,13 +51,22 @@ def run_clustering_for_datatype(config: Config, tracker: ExperimentTracker, data
     if config.action != '':
         df_filtered = df[df['action'] == config.action].copy()
     
+    # In the DB it's NULL
+    df_filtered['change_target'] = df_filtered['change_target'].fillna('')   
+
     if config.change_target == 'value':
         df_filtered = df_filtered[(df_filtered['change_target'] == '')].copy()
     elif config.change_target == 'datatype_metadata':
         df_filtered = df_filtered[(df_filtered['change_target'] != '') & (df_filtered['change_target'] != 'rank')].copy()
     
     if config.change_target == 'value':
-        df_filtered = df_filtered[df_filtered['datatype'] == config.datatype].copy()
+
+        if config.datatype == 'entity':
+            df_filtered = df_filtered[df_filtered['datatype'].isin(WD_ENTITY_TYPES)].copy()
+        elif config.datatype == 'string':
+            df_filtered = df_filtered[df_filtered['datatype'].isin(WD_STRING_TYPES)].copy()
+        else:
+            df_filtered = df_filtered[df_filtered['datatype'] == config.datatype].copy()
     
     logger.info(f"Filtered data shape: {df_filtered.shape}")
     
@@ -67,23 +77,27 @@ def run_clustering_for_datatype(config: Config, tracker: ExperimentTracker, data
     # Extract or load features
     if config.features_path is None:
         logger.info(f"Extracting features for {datatype}...")
-        if config.datatype == 'string':
-            df_filtered, feature_cols = create_text_features(df_filtered, [], semantic_similarity=True)
-        elif config.datatype == 'quantity':
+        
+        if config.datatype == 'quantity':
             df_filtered, feature_cols = create_quantity_features(df_filtered, [])
         elif config.datatype == 'globecoordinate':
             df_filtered, feature_cols = create_globe_coordinate_features(df_filtered, [])
         elif config.datatype == 'time':
             df_filtered, feature_cols = create_time_features(df_filtered, [])
-        elif config.datatype == 'entity':
-            df_filtered, feature_cols = create_entity_features(df_filtered, [], semantic_similarity=True)
+        else:
+            return
+        # elif config.datatype == 'entity':
+        #     df_filtered, feature_cols = create_entity_features(df_filtered, [], semantic_similarity=True)
+        # elif config.datatype == 'string':
+        #     df_filtered, feature_cols = create_text_features(df_filtered, [], semantic_similarity=True)
         
         features_cols_change_id = feature_cols + ['revision_id', 'property_id', 'value_id', 'change_target']
         features_df = df_filtered[features_cols_change_id].copy()
-        
+        features_df[feature_cols] = features_df[feature_cols].astype(float).fillna(0)
+
         # Save features
-        os.makedirs(f'{tracker.experiment_dir}', exist_ok=True)
-        features_df.to_parquet(f'{tracker.experiment_dir}/{config.datatype}_features.parquet', compression='snappy')
+        os.makedirs(f'{tracker.experiment_dir}/{config.datatype}', exist_ok=True)
+        features_df.to_parquet(f'{tracker.experiment_dir}/{config.datatype}/features.parquet', compression='snappy')
     else:
         features_df = pd.read_parquet(config.features_path)
     
@@ -144,15 +158,15 @@ def run_clustering_for_datatype(config: Config, tracker: ExperimentTracker, data
     # Save cluster assignments
     df_filtered['cluster_id'] = labels
     cluster_assignments = df_filtered[['revision_id', 'property_id', 'value_id', 'change_target', 'cluster_id']].copy()
-    tracker.save_dataframe(cluster_assignments, f'cluster_assignments_{config.datatype}.csv')
+    cluster_assignments.to_csv(f'{tracker.experiment_dir}/{config.datatype}/cluster_assignments.csv', index=False)
     
     # Analyze and save examples
     results_df = analyze_clusters(
         df_filtered, 
         labels, 
         tracker,
-        output_file_examples=f'cluster_examples_{config.datatype}.csv',
-        output_file_analysis=f'cluster_analysis_{config.datatype}.csv',
+        output_file_examples=f'{config.datatype}/cluster_examples.csv',
+        output_file_analysis=f'{config.datatype}/cluster_analysis.csv',
         n_examples=15
     )
     

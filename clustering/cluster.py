@@ -63,34 +63,34 @@ def find_optimal_k(X, random_state=42, n_init=3, max_iter=300, min_k=3, max_k=20
     elbow_k = kl.elbow
     
     # Plot both metrics
-    fig, ax1 = plt.subplots(1, 1, figsize=(8, 5))
+    # fig, ax1 = plt.subplots(1, 1, figsize=(8, 5))
     
-    # Elbow curve
-    ax1.plot(K, inertias, 'bx-', linewidth=2, markersize=8)
-    ax1.set_xlabel('Number of clusters (k)', fontsize=12)
-    ax1.set_ylabel('Inertia', fontsize=12)
-    ax1.set_title('Elbow Method For Optimal k', fontsize=14, fontweight='bold')
-    ax1.grid(True, alpha=0.3)
+    # # Elbow curve
+    # ax1.plot(K, inertias, 'bx-', linewidth=2, markersize=8)
+    # ax1.set_xlabel('Number of clusters (k)', fontsize=12)
+    # ax1.set_ylabel('Inertia', fontsize=12)
+    # ax1.set_title('Elbow Method For Optimal k', fontsize=14, fontweight='bold')
+    # ax1.grid(True, alpha=0.3)
     
-    plt.tight_layout()
+    # plt.tight_layout()
     
-    if  tracker is not None:
-        plt.savefig(tracker.experiment_dir / 'elbow_analysis.png', dpi=300, bbox_inches='tight')
-        print(f"\nSaved plot to {tracker.experiment_dir / 'elbow_analysis.png'}")
+    # if  tracker is not None:
+    #     plt.savefig(tracker.experiment_dir / 'elbow_analysis.png', dpi=300, bbox_inches='tight')
+    #     print(f"\nSaved plot to {tracker.experiment_dir / 'elbow_analysis.png'}")
     
-    plt.show()
+    # plt.show()
     
     print("\n" + "="*50)
     print(f"BEST K (by kneed): {elbow_k}")
     print("="*50)
     
     # Save metrics
-    metrics_df = pd.DataFrame({
-        'k': list(K),
-        'inertia': inertias
-    })
-    metrics_df.to_csv(tracker.experiment_dir / 'clustering_metrics.csv', index=False)
-    print(f"Saved metrics to {tracker.experiment_dir / 'clustering_metrics.csv'}")
+    # metrics_df = pd.DataFrame({
+    #     'k': list(K),
+    #     'inertia': inertias
+    # })
+    # metrics_df.to_csv(tracker.experiment_dir / 'clustering_metrics.csv', index=False)
+    # print(f"Saved metrics to {tracker.experiment_dir / 'clustering_metrics.csv'}")
     
     return elbow_k
 

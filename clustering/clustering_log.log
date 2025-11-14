@@ -1,0 +1,132 @@
+nohup: ignoring input
+2025-11-13 09:19:37,331 [INFO] STARTING MULTI-DATATYPE CLUSTERING
+2025-11-13 09:19:37,331 [INFO] Datatypes to process: ['quantity', 'time', 'globecoordinate']
+2025-11-13 09:19:37,331 [INFO] STARTING CLUSTERING FOR DATATYPE: QUANTITY
+2025-11-13 09:19:41,859 [INFO] Filtered data shape: (95862, 24)
+2025-11-13 09:19:41,860 [INFO] Extracting features for quantity...
+2025-11-13 09:19:42,473 [INFO] Features with zero variance: []
+2025-11-13 09:19:42,490 [INFO] 
+Data shape before PCA: (95862, 3)
+2025-11-13 09:19:42,491 [INFO] Data shape after PCA: (95862, 3)
+2025-11-13 09:19:42,491 [INFO] Total data points: 95,862
+2025-11-13 09:19:42,491 [INFO] Number of features: 3
+2025-11-13 09:19:42,491 [INFO] FINDING OPTIMAL K
+2025-11-13 09:19:50,359 [INFO] Best k determined: 4
+2025-11-13 09:19:50,359 [INFO] 
+Using k=4 for clustering...
+2025-11-13 09:19:50,360 [INFO] Clustering...
+2025-11-13 09:19:51,615 [INFO] Completed clustering for quantity
+2025-11-13 09:19:51,615 [INFO] Saved to: experiments/20251113_091937
+2025-11-13 09:19:51,853 [INFO] STARTING CLUSTERING FOR DATATYPE: TIME
+2025-11-13 09:19:52,486 [INFO] Filtered data shape: (35280, 24)
+2025-11-13 09:19:52,486 [INFO] Extracting features for time...
+2025-11-13 09:20:04,000 [INFO] Features with zero variance: []
+2025-11-13 09:20:04,006 [INFO] 
+Data shape before PCA: (35280, 2)
+2025-11-13 09:20:04,006 [INFO] Data shape after PCA: (35280, 1)
+2025-11-13 09:20:04,006 [INFO] Total data points: 35,280
+2025-11-13 09:20:04,006 [INFO] Number of features: 1
+2025-11-13 09:20:04,006 [INFO] FINDING OPTIMAL K
+2025-11-13 09:20:12,242 [INFO] Best k determined: 6
+2025-11-13 09:20:12,242 [INFO] 
+Using k=6 for clustering...
+2025-11-13 09:20:12,243 [INFO] Clustering...
+2025-11-13 09:20:13,546 [INFO] Completed clustering for time
+2025-11-13 09:20:13,546 [INFO] Saved to: experiments/20251113_091937
+2025-11-13 09:20:13,578 [INFO] STARTING CLUSTERING FOR DATATYPE: GLOBECOORDINATE
+2025-11-13 09:20:13,944 [INFO] Filtered data shape: (20931, 24)
+2025-11-13 09:20:13,944 [INFO] Extracting features for globecoordinate...
+2025-11-13 09:20:32,519 [INFO] Features with zero variance: []
+2025-11-13 09:20:32,525 [INFO] 
+Data shape before PCA: (20931, 3)
+2025-11-13 09:20:32,525 [INFO] Data shape after PCA: (20931, 3)
+2025-11-13 09:20:32,525 [INFO] Total data points: 20,931
+2025-11-13 09:20:32,525 [INFO] Number of features: 3
+2025-11-13 09:20:32,525 [INFO] FINDING OPTIMAL K
+2025-11-13 09:20:39,690 [INFO] Best k determined: 7
+2025-11-13 09:20:39,691 [INFO] 
+Using k=7 for clustering...
+2025-11-13 09:20:39,691 [INFO] Clustering...
+2025-11-13 09:20:40,526 [INFO] Completed clustering for globecoordinate
+2025-11-13 09:20:40,526 [INFO] Saved to: experiments/20251113_091937
+2025-11-13 09:20:40,559 [INFO] ALL CLUSTERING COMPLETED
+Mean after scaling:  [ 1.48242836e-18 -1.42313122e-17  0.00000000e+00]
+Std after scaling:  [1. 1. 1.]
+Mean after PCA:  [2.53374509e-14 7.59436855e-14 6.22661690e-15]
+
+Reduced from 3 to 3 features
+Testing k from 3 to 15...
+k=3... k=4... k=5... k=6... k=7... k=8... k=9... k=10... k=11... k=12... k=13... k=14... k=15... 
+Saved plot to experiments/20251113_091937/elbow_analysis.png
+
+==================================================
+BEST K (by kneed): 4
+==================================================
+Saved metrics to experiments/20251113_091937/clustering_metrics.csv
+CLUSTERING ANALYSIS - 4 clusters
+================================================================================
+
+Total samples: 95,862
+Cluster sizes:
+  Cluster 0: 95,225 (99.3%)
+  Cluster 1: 2 (0.0%)
+  Cluster 2: 412 (0.4%)
+  Cluster 3: 223 (0.2%)
+
+
+ Saved 47 examples to experiments/20251113_091937/cluster_examples_quantity.csv
+Mean after scaling:  [-1.36952681e-17  7.25043608e-18]
+Std after scaling:  [1. 1.]
+Mean after PCA:  [8.05604009e-19]
+
+Reduced from 2 to 1 features
+Testing k from 3 to 15...
+k=3... k=4... k=5... k=6... k=7... k=8... k=9... k=10... k=11... k=12... k=13... k=14... k=15... 
+Saved plot to experiments/20251113_091937/elbow_analysis.png
+
+==================================================
+BEST K (by kneed): 6
+==================================================
+Saved metrics to experiments/20251113_091937/clustering_metrics.csv
+CLUSTERING ANALYSIS - 6 clusters
+================================================================================
+
+Total samples: 35,280
+Cluster sizes:
+  Cluster 0: 33,893 (96.1%)
+  Cluster 1: 220 (0.6%)
+  Cluster 2: 33 (0.1%)
+  Cluster 3: 644 (1.8%)
+  Cluster 4: 85 (0.2%)
+  Cluster 5: 405 (1.1%)
+
+
+ Saved 90 examples to experiments/20251113_091937/cluster_examples_time.csv
+Mean after scaling:  [ 2.71575266e-18  1.56155778e-17 -3.39469082e-18]
+Std after scaling:  [1. 1. 1.]
+Mean after PCA:  [-3.34668777e-16  3.45535766e-18  2.23157825e-18]
+
+Reduced from 3 to 3 features
+Testing k from 3 to 15...
+k=3... k=4... k=5... k=6... k=7... k=8... k=9... k=10... k=11... k=12... k=13... k=14... k=15... 
+Saved plot to experiments/20251113_091937/elbow_analysis.png
+
+==================================================
+BEST K (by kneed): 7
+==================================================
+Saved metrics to experiments/20251113_091937/clustering_metrics.csv
+CLUSTERING ANALYSIS - 7 clusters
+================================================================================
+
+Total samples: 20,931
+Cluster sizes:
+  Cluster 0: 20,749 (99.1%)
+  Cluster 1: 49 (0.2%)
+  Cluster 2: 16 (0.1%)
+  Cluster 3: 58 (0.3%)
+  Cluster 4: 45 (0.2%)
+  Cluster 5: 11 (0.1%)
+  Cluster 6: 3 (0.0%)
+
+
+ Saved 89 examples to experiments/20251113_091937/cluster_examples_globecoordinate.csv

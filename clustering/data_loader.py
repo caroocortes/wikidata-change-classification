@@ -201,7 +201,7 @@ def get_data_from_db(conn, params, logging=None):
     if 'sql_untagged' in params and params['sql_untagged']:
         query += """
         WHERE NOT 
-            (typo OR value_refinement OR formatting OR reverted_edit OR reversion OR value_unrefinement OR link_fix OR property_replacement)
+            (typo OR value_refinement OR formatting OR reverted_edit OR reversion OR value_unrefinement OR link_fix OR property_replacement OR rank_deprecation OR sign_change)
         """
 
     if 'only_updates' in params and params['only_updates']:
@@ -227,9 +227,6 @@ def get_data_from_db(conn, params, logging=None):
             query += f"""
             AND c.datatype = '{params['datatype']}'
             """
-    
-    if params['datatype'] == 'globecoordinate':
-        logging.info(f"FULL QUERY:\n{query}")
 
     df = query_to_df_chunked(query, conn, chunksize=50000, logging=logging)
 

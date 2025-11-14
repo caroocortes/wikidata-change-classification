@@ -7,6 +7,7 @@ from Levenshtein import distance as levenshtein_distance
 import time
 import pandas as pd
 import json
+import datetime
 
 from const import WD_ENTITY_TYPES, WD_STRING_TYPES
 
@@ -211,6 +212,8 @@ def create_text_features(df, feature_cols, semantic_similarity=True):
 ##############################
 # Time feature extraction
 ##############################
+from datetime import datetime
+
 def create_time_features(df, feature_cols):
     """
     Extract time change features
@@ -218,38 +221,55 @@ def create_time_features(df, feature_cols):
     time_mask = (df['datatype'] == 'time')
     
     if time_mask.sum() == 0:
-        return df
+        return df, feature_cols
     
-    def parse_wikidata_time(time_str):
+    def parse_wikidata_time_to_datetime(time_str):
         try:
-            time_str = str(time_str).lstrip('+')
-            return pd.to_datetime(time_str, format='%Y-%m-%dT%H:%M:%SZ')
+            return datetime.fromisoformat(str(time_str).replace('Z', '').replace('+', '').replace('−', ''))
         except:
-            return pd.NaT
+            return None
     
-    df.loc[time_mask, 'old_time_parsed'] = df.loc[time_mask, 'old_value'].apply(parse_wikidata_time)
-    df.loc[time_mask, 'new_time_parsed'] = df.loc[time_mask, 'new_value'].apply(parse_wikidata_time)
+    df.loc[time_mask, 'old_time_parsed'] = df.loc[time_mask, 'old_value'].apply(parse_wikidata_time_to_datetime)
+    df.loc[time_mask, 'new_time_parsed'] = df.loc[time_mask, 'new_value'].apply(parse_wikidata_time_to_datetime)
     
     valid_mask = time_mask & df['old_time_parsed'].notna() & df['new_time_parsed'].notna()
     
     if valid_mask.sum() == 0:
-        return df
+        return df, feature_cols
     
-    try:
-        df.loc[valid_mask, 'time_diff_days'] = (
-            df.loc[valid_mask, 'new_time_parsed'] - df.loc[valid_mask, 'old_time_parsed']
-        ).dt.days.abs()
-    except (OverflowError, ValueError):
-        # Fallback: calculate manually using timestamps (seconds since epoch)
-        old_timestamps = df.loc[valid_mask, 'old_time_parsed'].astype('int64') / 10**9  # Convert to seconds
-        new_timestamps = df.loc[valid_mask, 'new_time_parsed'].astype('int64') / 10**9
-        df.loc[valid_mask, 'time_diff_days'] = ((new_timestamps - old_timestamps) / 86400).abs()
+    def calc_date_diff(row):
+        """Calculate date difference in days"""
+        try:
+            dt1 = row['old_time_parsed']
+            dt2 = row['new_time_parsed']
+            if dt1 is None or dt2 is None:
+                return None
+            return abs((dt2.date() - dt1.date()).days)
+        except:
+            return None
     
-    df.loc[valid_mask, 'time_diff_years'] = df.loc[valid_mask, 'time_diff_days'] / 365.25
-
+    def calc_time_diff(row):
+        """Calculate time difference in minutes"""
+        try:
+            dt1 = row['old_time_parsed']
+            dt2 = row['new_time_parsed']
+            if dt1 is None or dt2 is None:
+                return None
+            
+            # Convert to minutes since midnight
+            time1_min = dt1.hour * 60 + dt1.minute + dt1.second / 60
+            time2_min = dt2.hour * 60 + dt2.minute + dt2.second / 60
+            
+            return abs(time2_min - time1_min)
+        except:
+            return None
+    
+    df.loc[valid_mask, 'date_diff_days'] = df.loc[valid_mask].apply(calc_date_diff, axis=1)
+    df.loc[valid_mask, 'time_diff_minutes'] = df.loc[valid_mask].apply(calc_time_diff, axis=1)
+   
     feature_cols.extend([
-        'time_diff_days',
-        'time_diff_years',
+        'date_diff_days',
+        'time_diff_minutes'
     ])
 
     return df, feature_cols

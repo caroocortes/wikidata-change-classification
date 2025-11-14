@@ -145,19 +145,33 @@ class SQLClassifier(Classifier):
         total_time = time.time() - start_time
         logging.info(f'Finished value unrefinement classification. Took {total_time} seconds. Affected {affected_rows:,} rows')
 
-    def run_sign_precision_classification(self):
+    def run_sign_classification(self):
         start_time = time.time()
 
-        sql_file = self.sql_dir / 'sign_precision_changes.sql'
+        sql_file = self.sql_dir / 'sign_change.sql'
         
         with open(sql_file) as f:
-            sign_precision_query = f.read()
-        logging.info('Started sign precision classification.')
-        sign_precision_query = sign_precision_query.replace(":change", self.table_names['change_table'])
-        affected_rows = self.sql_runner.execute_query(sign_precision_query)
+            sign_change_query = f.read()
+        logging.info('Started sign change classification.')
+        sign_change_query = sign_change_query.replace(":change", self.table_names['change_table'])
+        affected_rows = self.sql_runner.execute_query(sign_change_query)
 
         total_time = time.time() - start_time
-        logging.info(f'Finished sign precision classification. Took {total_time} seconds. Affected {affected_rows:,} rows')
+        logging.info(f'Finished sign change classification. Took {total_time} seconds. Affected {affected_rows:,} rows')
+    
+    def run_rank_deprecation_classification(self):
+        start_time = time.time()
+
+        sql_file = self.sql_dir / 'rank_deprecation.sql'
+        
+        with open(sql_file) as f:
+            rank_deprecation_query = f.read()
+        logging.info('Started rank deprecation classification.')
+        rank_deprecation_query = rank_deprecation_query.replace(":change", self.table_names['change_table'])
+        affected_rows = self.sql_runner.execute_query(rank_deprecation_query)
+
+        total_time = time.time() - start_time
+        logging.info(f'Finished rank deprecation classification. Took {total_time} seconds. Affected {affected_rows:,} rows')
 
     def link_fix_classification(self):
         start_time = time.time()
@@ -226,11 +240,12 @@ class SQLClassifier(Classifier):
 
         # logging.info(f'Running change classification: {num_changes:,} changes, {num_revisions:,} revisions, {num_files:,} files, {num_entities:,} entities.')
 
-        # self.run_reverted_edit_classification()
-        # self.run_formatting_classification()
-        # self.run_typo_classification()
-        # self.run_value_refinement_classification()
-        # self.run_value_unrefinement_classification()
-        self.run_sign_precision_classification()
+        self.run_reverted_edit_classification()
+        self.run_formatting_classification()
+        self.run_typo_classification()
+        self.run_value_refinement_classification()
+        self.run_value_unrefinement_classification()
+        self.run_sign_classification()
+        self.run_rank_deprecation_classification()
         self.link_fix_classification()
         self.run_property_replacement_classification()
