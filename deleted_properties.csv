@@ -1,0 +1,264 @@
+id,label
+7,brother
+9,sister
+11,state
+12,province
+28,county
+29,uncle
+32,region
+33,settlement
+34,prefecture
+43,stepfather
+44,stepmother
+45,grandparent
+46,head of national government
+48,anthem sound file
+49,demonym
+55,Former member of sports team
+60,astronomical object
+62,image
+68,Municipality / Gemeinde/ Commune
+70,order
+71,family
+74,genus
+75,kingdom (taxonomy)
+76,phylum
+77,class
+82,Ward
+83,city
+89,species
+90,high school
+93,department
+96,natural satellite
+99,Planets
+100,Member state
+107,Main type of item (entity) / Art des Objekts / Type principal
+116,Host galaxy
+132,type of administrative division
+133,Language family
+134,has dialect
+139,aunt
+160,affiliation
+164,railway alliance
+165,Owner
+168,structure type
+173,type of election
+198,ship builder
+202,lake type
+222,frozen
+224,lake_sections
+265,lake group
+266,Buried here
+273,domain
+280,languages first book
+283,language group
+284,language subgroup
+285,language branch
+288,watercraft type
+295,mountain range
+302,mountain type
+357,title
+378,time zone
+387,quote
+388,Singles
+392,subtitle
+394,taxon author
+438,inscription
+448,launch site
+482,support actor/actress
+510,brother-in-law (sister's husband)
+513,birth name
+526,Island
+540,venue
+558,unit symbol
+596,cardinal direction
+614,archipelago
+616,CHRC
+623,Crew photo
+643,Genloc Chr
+719,notable incident
+727,Europeana ID
+728,GHS hazard statement
+738,influenced
+743,short name
+766,event location
+794,as
+796,geo datum
+883,FIPS 5-2 (code for US states)
+907,AMG Game ID
+940,GHS precautionary statements
+969,street address
+992,Function/Mission
+1076,ICTV virus ID
+1112,Pokédex number
+1118,tennis singles ranking
+1119,tennis doubles ranking
+1124,teu
+1130,doubles titles
+1131,singles titles
+1134,located in place
+1169,Impact factor
+1222,NARA person ID
+1223,NARA organization ID
+1224,NARA geographic ID
+1226,NARA specific records type ID
+1228,Philippine Standard Geographic Code ID
+1231,NARA catalogue record ID
+1244,phone number (URL)
+1298,workplace
+1306,China railway station telecode
+1361,Anime News Network ID
+1384,Oxford Biography Index Number
+1413,SFDb ID
+1432,b-side
+1569,number of edges
+1570,number of vertices
+1572,première date
+1597,Slovene Cultural Heritage designation
+1623,MarineTraffic Ship ID
+1646,mandatory qualifier
+1655,station number
+1658,number of faces
+1688,AniDB ID
+1698,Gray's Anatomy 1918 subject
+1773,attributed to
+1790,BioStor author identifier
+1805,WHO INN
+1849,SSR WrittenForm ID
+1858,Wikidata example string
+1859,Wikidata example item
+1862,Wikidata example quantity
+1863,Wikidata example property value
+1864,Wikidata example monolingual text
+1865,Wikidata example geographic coordinates
+1905,FundRef registry name
+1946,National Library of Ireland authority ID
+1962,patron
+1964,sort key
+1969,MovieMeter director ID
+1996,parliament.uk biography pages
+2035,LinkedIn personal profile URL
+2086,CDD Public ID
+2157,lithography
+2215,proper motion
+2237,units used for this property
+2422,number of awards
+2439,language
+2466,judicial sentence
+2570,Saros cycle of eclipse
+2580,Baltisches Biographisches Lexikon digital ID (former scheme)
+2608,Valencian Property of Local Relevance id
+2617,formatterURL for Wikidata ID
+2656,FIFA World Ranking
+2690,New York Times Semantic Concept
+2691,New York Times Semantic Concept
+2692,New York Times Semantic Concept
+2693,New York Times Semantic Concept
+2731,Projeto Excelências ID
+2837,Wikidata month number
+2874,PubChem BioAssay ID (AID)
+3043,scoresway soccer person id
+3084,allowed freedom of panorama
+3188,Nobel biography ID
+3214,Onisep occupation ID
+3231,Mediaarts-DB ID
+3384,Denkmalliste Brandenburg
+3484,name shares origin with
+3623,BadmintonLink ID
+3649,IDEAS person ID
+3688,ICF sprint canoer ID
+3717,MEROPS ID
+3722,Commons map category
+3809,YerelNET district ID
+3905,GINCO ID
+3917,Número de orden en el AFI
+4039,IDs from Rock.com.ar
+4205,Foursquare username
+4210,Bashkir encyclopedia (Bashkir version) ID
+4211,Bashkir encyclopedia (Russian version) ID
+4280,International Standard Text Code
+4420,VNDB ID
+4497,IDs on some music streaming services and stores
+4547,OKS ID
+4570,wikidata project
+4603,IDs on some music streaming services and stores
+4828,JORF appointments ID
+4877,Tirage
+4883,FFF player ID
+4886,FFF female player ID
+4938,Japan Rugby Football Union women's player ID
+4940,Japan Rugby Football Union women's sevens player ID
+4941,Japan Rugby Football Union men's sevens player ID
+4990,Statistics Canada Geographic code
+5000,Analog or derivative of
+5089,USGS-ANSS event page
+5100,Réunion des musées nationaux id
+5105,Deutsche Bahn station category
+5130,landmass
+5190,synonym
+5326,taxon described in publication
+5330,United Kingdom railway station category
+5367,YouTube Gaming game ID
+5420,GS1 Global Product Classification brick code
+5482,LilyPond notation
+5654,France Musique ID
+5660,Diffusion ENS ID
+5724,BasketballBundesliga ID
+5924,Lyrically artist ID
+6065,Scoresway rugby person ID
+6066,Scoresway volleyball person ID
+6077,British Museum bioID
+6085,The Guardian article ID
+6107,Winterthur Glossar URL
+6270,Boobpedia article
+6428,HAER ID
+6453,Bilibili bangumi ID
+6491,Board Game Atlas ID
+6615,Kicker.de player ID (former scheme)
+6623,Gamepedia Article ID
+6646,JMdictDB ID
+6656,Bibliography of the History of the Czech Lands ID
+6712,precedes word-initial
+6893,Offizielle Deutsche Charts artist ID
+7049,AICS Chemical ID
+7158,merlin.pl author ID
+7164,Raptekster.dk ID
+7322,Marine Regions Geographic IDentifier
+7335,Mixer game ID
+7456,AAAS keyword ID
+7478,iFixit repairability score
+7818,French Vikidia ID
+7822,Italian Vikidia ID
+7827,Spanish Vikidia ID
+7829,English Vikidia ID
+7832,Basque Vikidia ID
+7841,Armenian Vikidia ID
+7843,German Vikidia ID
+7859,WorldCat Identities
+8252,content partnership category
+8279,Absolute Games game ID
+8409,Naturvårdsverket Amenity ID
+8510,Maitron des fusillés ID
+8929,religion or world view
+8981,lunar coordinates
+9099,Cultural heritage ID in Lower Saxony
+9123,Catalan Vikidia ID
+9124,Russian Vikidia ID
+9395,Verified Handles VHID
+9413,BLPL ID
+9416,Storybook ID
+9788,performed at
+10150,iTunes genre
+10279,TVFPlay series ID
+10589,MangaDex title ID
+10613,surrounds the enclave
+10628,Martian coordinates
+10675,OSM object
+10724,Hmoegirlpedia
+10725,English Everipedia ID
+10863,Springer Nature Article ID
+11456,Macmillan Dictionary entry (British English)
+11457,Macmillan Dictionary entry (American English)
+12600,Digital Athenaeus Catalog Author ID
+12778,Norwegian prisoner of war camp ID
+12990,ACUM IDs

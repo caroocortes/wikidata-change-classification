@@ -2,11 +2,12 @@
 import streamlit as st
 import pandas as pd
 import os
+from src.const import CHANGE_LABELS
 
 # --------------------
 # FILE PATHS
 # --------------------
-DATA_FILE = "gold_standard.csv"
+DATA_FILE = "gold_standard_deduplicated.csv"
 
 # --------------------
 # FUNCTIONS
@@ -95,9 +96,16 @@ with col1:
         st.session_state.index -= 1
         st.rerun()
 with col2:
-    rev_choice = st.selectbox("Jump to revision ID:", df["revision_id"].tolist(), label_visibility="collapsed")
+    jump_to = st.number_input(
+        "Jump to change #:", 
+        min_value=1, 
+        max_value=len(df), 
+        value=st.session_state.index + 1,
+        step=1,
+        label_visibility="collapsed"
+    )
     if st.button("Go", use_container_width=True):
-        st.session_state.index = df.index[df["revision_id"] == rev_choice].tolist()[0]
+        st.session_state.index = jump_to - 1  # Convert to 0-based index
         st.rerun()
 with col3:
     if st.button("➡️ Next", use_container_width=True) and st.session_state.index < len(df) - 1:
@@ -109,7 +117,7 @@ st.markdown("---")
 if index < len(df):
     change = df.iloc[index]
 
-    st.subheader(f"Change {index + 1} of {len(df)} — Revision {change['revision_id']} - Entity ID {change['entity_id']}")
+    st.subheader(f"Change {index + 1} of {len(df)} — Revision {change['revision_id']} - Entity ID {change['entity_id']} - Label: {change['entity_label']}")
     st.markdown(
         f"**Property ID:** {change['property_id']}  \n"
         f"**Property Label:** {change['property_label']}  \n"
@@ -134,12 +142,7 @@ if index < len(df):
         st.code(change["new_value_label"] if pd.notna(change["new_value_label"]) else "", language="text")
 
     st.markdown("### Choose labels (you can select multiple):")
-    labels = [
-        "typo", "formatting", "refinement", "value specification", "unrefinement", "value generalization",
-        "reversion", "reverted edit", "property replacement", 
-        "rewording", "link fix", "language standardization", "value correction", "type specialization",
-        "type unrefinement", "none"
-    ]
+    labels = CHANGE_LABELS
 
     # Pre-select existing labels
     existing_labels = []

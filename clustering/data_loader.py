@@ -132,6 +132,8 @@ def get_data_from_db(conn, params, logging=None):
             'datatype': 'string/entity/quantity/time/globecoordinate'
         }
     """
+
+    print('Getting data from DB for clustering...', flush=True)
     start_time = time.time()
     logging.info('Creating indexes to speed up queries')
     index_vc = """ 
@@ -201,8 +203,10 @@ def get_data_from_db(conn, params, logging=None):
     if 'sql_untagged' in params and params['sql_untagged']:
         query += """
         WHERE NOT 
-            (typo OR value_refinement OR formatting OR reverted_edit OR reversion OR value_unrefinement OR link_fix OR property_replacement OR rank_deprecation OR sign_change)
+            (typo OR value_refinement OR formatting OR reverted_edit OR reversion OR value_unrefinement OR link_fix OR property_replacement OR rank_deprecation)
         """
+    
+    query += "AND r.file_path = 'wikidatawiki-20250601-pages-meta-history27.xml-p106201964p106272172.bz2'"
 
     if 'only_updates' in params and params['only_updates']:
         query += """

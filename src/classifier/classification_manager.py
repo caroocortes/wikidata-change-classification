@@ -3,6 +3,7 @@ import json
 
 from .sql_classifier import SQLClassifier
 from .ml_classifier import MLClassifier
+from ..utils import copy_from_csv, update_column_types
 
 class ClassificationManager:
 
@@ -18,8 +19,30 @@ class ClassificationManager:
             
         self.classifier.table_names = self.table_names
 
+        self.load_gold_standard()
+
+    def load_gold_standard(self):
+        start_time = time.time()
+        print(f'Start loading gold standard for classification.')
+        
+        copy_from_csv(self.classifier.sql_runner.conn, 'gold_standard/gold_standard.csv', 'gold_standard', ['revision_id','entity_id','entity_label','value_id','property_id','change_target','property_label','old_value','old_value_label','new_value','new_value_label','label','datatype', 'action', 'target'], ['revision_id', 'property_id', 'value_id', 'change_target'])
+        copy_from_csv(self.classifier.sql_runner.conn, 'gold_standard/reverted_edit.csv', 'reverted_edit', ["anchor_revision_id","revision_id","entity_id","entity_label","value_id","property_id","change_target","property_label","old_value","old_value_label","new_value","new_value_label","datatype","new_hash","old_hash","revision_rank","timestamp","comment","label"], ['revision_id', 'property_id', 'value_id', 'change_target'])
+        copy_from_csv(self.classifier.sql_runner.conn, 'gold_standard/property_replacement.csv', 'property_replacement', ["revision_id","entity_id","entity_label","value_id","property_id","change_target","property_label","old_value","old_value_label","new_value","new_value_label","datatype","action","target","comment","timestamp","label"], ['revision_id', 'property_id', 'value_id', 'change_target'])
+        
+        update_column_types(self.classifier.sql_runner.conn)
+        print(f'Finished loading gold standard for classification. Took: {time.time() - start_time} seconds')
+
     def run_classifier(self):
         start_time = time.time()
         print(f'Start running {self.classification_type} classification.')
         self.classifier.run_classification()
         print(f'Finished running {self.classification_type} classification. Took: {time.time() - start_time} seconds')
+
+    def evaluate_on_gold_standard(self):
+        start_time = time.time()
+        print(f'Start evaluating {self.classification_type} classifier on gold standard.')
+        self.classifier.evaluate_on_gold_standard()
+        print(f'Finished evaluating {self.classification_type} classifier on gold standard. Took: {time.time() - start_time} seconds')
+
+    def calculate_evaluation_metrics(self):
+        self.classifier.calculate_evaluation_metrics()

@@ -140,75 +140,74 @@ select
         cte2.action = 'CREATE'
 limit 200;
 
-CREATE TABLE sample_reverted_revision AS
-SELECT
-    cte1.revision_id AS revision_vandalized,
-    cte2.revision_id AS revision_reverted,
-    cte1.entity_id,
-    cte1.property_id,
-    cte1.value_id,
-	cte1.old_value as reverted_old_value,
-	cte1.new_value as reverted_new_value,
-	cte2.old_value as reversion_old_value,
-	cte2.new_value as reversion_new_value,
-    cte2.comment AS comment_reverted,
-    CASE 
-        WHEN (cte2.comment ILIKE '%restore%' OR cte1.new_value != cte2.old_value) THEN 'restore'
-        ELSE 'undo'
-    END as type_revert
-FROM change_timestamp_entity cte2
-JOIN LATERAL (
-    -- pick the most recent earlier cte1 that matches the revert condition
-    SELECT cte1.*
-    FROM change_timestamp_entity cte1
-    WHERE
-        cte1.entity_id   = cte2.entity_id
-        AND cte1.property_id = cte2.property_id
-        AND cte1.value_id    = cte2.value_id
-        AND cte1.change_target = cte2.change_target
-        AND cte1.timestamp < cte2.timestamp
-        AND (
-            -- hash is not NULL and cross value match
-            (cte1.old_hash IS NOT NULL
-             AND cte2.new_hash IS NOT NULL
-             AND cte1.old_hash = cte2.new_hash
-             AND cte1.old_value = cte2.new_value)
-            OR
-            -- addition/deletion changes (hashes null so compare hashes/values in the other direction)
-            (cte1.old_hash IS NULL
-             AND cte2.new_hash IS NULL
-             AND cte1.new_hash = cte2.old_hash
-             AND cte1.new_value = cte2.old_value)
-        )
-    ORDER BY cte1.timestamp DESC
-    LIMIT 1
-) cte1 ON TRUE
-WHERE
-    cte2.change_target = '' -- only check value changes, not datatype metadata
-    -- either within a month or a revert-like comment
-    AND (
-        cte2.timestamp - cte1.timestamp <= INTERVAL '1 month'
-        OR COALESCE(TRIM(cte2.comment), '') ILIKE ANY (ARRAY[
-            '%rvv%', '%vandal%', '%rv v%', '%revert%', '%restore%', '%undo%'
-        ])
-    )
-limit 200;
 
-INSERT INTO sample_reverted_revision
-SELECT
-    c1.revision_id AS revision_vandalized,
-    c2.revision_id AS revision_reverted,
-    c1.entity_id,
-    c1.property_id,
-    c1.old_value AS reverted_old_value,
-    c1.new_value AS reverted_new_value,
-    c2.old_value AS reversion_old_value,
-    c2.new_value AS reversion_new_value
-FROM change_timestamp_entity c1
-JOIN change_timestamp_entity c2
-  ON c1.entity_id = c2.entity_id
- AND c1.property_id = c2.property_id
- AND c1.timestamp < c2.timestamp
-WHERE c1.change_target = ''
-  AND ((c1.old_value IS DISTINCT FROM c2.new_value) or (c1.new_value = c2.old_value and c1.old_value = c2.new_value))  -- ensure not obvious reversion
-LIMIT 200;
+WITH random_sample AS (
+    SELECT 
+        r.revision_id, 
+        r.entity_id,
+        r.entity_label,
+        vc.value_id,
+        vc.property_id,
+        vc.change_target,
+        vc.property_label,
+        vc.old_value,
+        vc.old_value_label,
+        vc.new_value,
+        vc.new_value_label,
+        vc.datatype,
+        r.comment,
+        r.timestamp
+    FROM value_change vc 
+    JOIN revision r ON r.revision_id = vc.revision_id 
+    WHERE COALESCE(TRIM(r.comment), '') ILIKE ANY (ARRAY[
+        '%rvv%', '%vandal%', '%rv v%', '%revert%', '%restore%', '%undo%'
+    ]) 
+	AND change_target = ''
+    AND reversion = FALSE AND reverted_edit = FALSE
+    AND file_path != 'wikidatawiki-20250601-pages-meta-history27.xml-p106201964p106272172.bz2'
+    LIMIT 100
+),
+next_10_revisions AS (
+    SELECT 
+        rs.revision_id as anchor_revision_id,
+        rs.entity_id,
+        rs.property_id as anchor_property_id,
+        rs.value_id as anchor_value_id,
+        r.revision_id,
+        r.timestamp,
+        ROW_NUMBER() OVER (
+            PARTITION BY rs.revision_id, rs.property_id, rs.value_id, rs.change_target
+            ORDER BY r.timestamp ASC
+        ) as revision_rank
+    FROM random_sample rs
+    JOIN revision r ON r.entity_id = rs.entity_id
+    JOIN value_change vc ON vc.revision_id = r.revision_id
+        AND vc.property_id = rs.property_id      -- Same property
+        AND vc.value_id = rs.value_id            -- Same value
+    WHERE r.timestamp <= rs.timestamp AND vc.change_target = ''  -- Get revisions AFTER or at anchor time
+)
+SELECT 
+    n10r.anchor_revision_id,
+    r.revision_id, 
+    r.entity_id,
+    r.entity_label,
+    vc.value_id,
+    vc.property_id,
+    vc.change_target,
+    vc.property_label,
+    vc.old_value,
+    vc.old_value_label,
+    vc.new_value,
+    vc.new_value_label,
+    vc.datatype,
+    n10r.revision_rank,
+    r.timestamp,
+    r.comment,
+    vc.reverted_edit
+FROM next_10_revisions n10r
+JOIN revision r ON n10r.revision_id = r.revision_id
+ JOIN value_change vc ON vc.revision_id = r.revision_id 
+    AND vc.property_id = n10r.anchor_property_id 
+    AND vc.value_id = n10r.anchor_value_id 
+WHERE n10r.revision_rank <= 10 AND vc.change_target = ''
+ORDER BY n10r.anchor_revision_id, r.timestamp ASC;

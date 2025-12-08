@@ -9,7 +9,7 @@ import pandas as pd
 import json
 import datetime
 
-from const import WD_ENTITY_TYPES, WD_STRING_TYPES
+from src.const import WD_ENTITY_TYPES, WD_STRING_TYPES
 
 ##############################
 # Text feature extraction

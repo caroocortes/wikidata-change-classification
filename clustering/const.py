@@ -19,8 +19,9 @@ CHANGE_TARGET = 'value'  # 'value' or 'datatype_metaddata'
 ACTION = 'UPDATE'  # 'UPDATE' for now
 
 # List of datatypes to cluster
-DATATYPES_TO_CLUSTER = ['string', 'quantity', 'time', 'globecoordinate', 'entity'] 
-
+DATATYPES_TO_CLUSTER = ['quantity', 'time', 'globecoordinate'] 
+# DATATYPES_TO_CLUSTER = ['string','entity'] 
+# DATATYPES_TO_CLUSTER = ['quantity', 'time', 'globecoordinate','string','entity'] 
 
 @dataclass
 class Config:
