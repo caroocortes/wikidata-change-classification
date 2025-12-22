@@ -37,15 +37,17 @@ JOIN LATERAL (
         AND cte1.change_target = cte2.change_target
         AND cte1.timestamp < cte2.timestamp
         AND (
-            -- hash is not NULL and cross value match
-            (cte1.old_hash IS NOT NULL
-             AND cte2.new_hash IS NOT NULL
+            -- hash is not NULL and cross value match (UPDATES + DELETIONS)
+            (
+                (cte1.old_hash IS NOT NULL and cte1.old_hash != '')
+             AND (cte2.new_hash IS NOT NULL and cte2.new_hash != '')
              AND cte1.old_hash = cte2.new_hash
              AND cte1.old_value = cte2.new_value)
             OR
-            -- addition/deletion changes (hashes null so compare hashes/values in the other direction)
-            (cte1.old_hash IS NULL
-             AND cte2.new_hash IS NULL
+            -- creation changes (hashes null so compare hashes/values in the other direction)
+            (
+            (cte1.old_hash IS NULL or (cte1.old_hash = '')) -- creation
+             AND (cte2.new_hash IS NULL or (cte2.new_hash = '')) -- creation
              AND cte1.new_hash = cte2.old_hash
              AND cte1.new_value = cte2.old_value)
         )
@@ -58,7 +60,7 @@ WHERE
     AND (
         cte2.timestamp - cte1.timestamp <= INTERVAL '1 month'
         OR COALESCE(TRIM(cte2.comment), '') ILIKE ANY (ARRAY[
-            '%rvv%', '%vandal%', '%rv v%', '%revert%', '%restore%', '%undo%'
+            '%rvv%', '%vandal%', '%rv v%', '%revert%', '%restore%', '%undo%', '%undid%'
         ])
     );
 

@@ -92,54 +92,65 @@ def copy_from_csv(conn, csv_file_path, table_name, columns, primary_keys, delimi
     else:
         print(f"Table {table_name} already exists. Skipping loading data.")
 
+    return exists
+
     
-def update_column_types(conn):
+def update_column_types(conn, table_existence):
     print('Going to update column types', flush=True)
-    with conn.cursor() as cur:
-        cur.execute("""
-            ALTER TABLE reverted_edit
-            ALTER COLUMN revision_id TYPE BIGINT USING revision_id::BIGINT,
-            ALTER COLUMN entity_id TYPE BIGINT USING entity_id::INT,
-            ALTER COLUMN timestamp TYPE TIMESTAMP WITH TIME ZONE USING timestamp::TIMESTAMP WITH TIME ZONE,
-            ALTER COLUMN property_id TYPE INT USING property_id::INT,
-            ALTER COLUMN old_value TYPE JSONB USING old_value::JSONB,
-            ALTER COLUMN new_value TYPE JSONB USING new_value::JSONB;
-                    
-            UPDATE reverted_edit
-            SET change_target = COALESCE(change_target, '');
-        """)
-    conn.commit()
 
-    with conn.cursor() as cur:
-        cur.execute("""
-            ALTER TABLE property_replacement
-            ALTER COLUMN revision_id TYPE BIGINT USING revision_id::BIGINT,
-            ALTER COLUMN entity_id TYPE BIGINT USING entity_id::INT,
-            ALTER COLUMN timestamp TYPE TIMESTAMP WITH TIME ZONE USING timestamp::TIMESTAMP WITH TIME ZONE,
-            ALTER COLUMN property_id TYPE INT USING property_id::INT,
-            ALTER COLUMN old_value TYPE JSONB USING old_value::JSONB,
-            ALTER COLUMN new_value TYPE JSONB USING new_value::JSONB;
-                    
-            UPDATE property_replacement
-            SET change_target = COALESCE(change_target, '');
-        """)
-    conn.commit()
+    if not table_existence['reverted_edit']:
+        with conn.cursor() as cur:
+            cur.execute("""
+                ALTER TABLE reverted_edit
+                ALTER COLUMN revision_id TYPE BIGINT USING revision_id::BIGINT,
+                ALTER COLUMN entity_id TYPE BIGINT USING entity_id::INT,
+                ALTER COLUMN timestamp TYPE TIMESTAMP WITH TIME ZONE USING timestamp::TIMESTAMP WITH TIME ZONE,
+                ALTER COLUMN property_id TYPE INT USING property_id::INT,
+                ALTER COLUMN old_value TYPE JSONB USING old_value::JSONB,
+                ALTER COLUMN new_value TYPE JSONB USING new_value::JSONB;
+                        
+                UPDATE reverted_edit
+                SET change_target = COALESCE(change_target, '');
+            """)
+        conn.commit()
 
-    with conn.cursor() as cur:
-        cur.execute("""
-            ALTER TABLE gold_standard
-            ALTER COLUMN revision_id TYPE BIGINT USING revision_id::BIGINT,
-            ALTER COLUMN entity_id TYPE BIGINT USING entity_id::INT,
-            ALTER COLUMN property_id TYPE INT USING property_id::INT,
-            ALTER COLUMN old_value TYPE JSONB USING old_value::JSONB,
-            ALTER COLUMN new_value TYPE JSONB USING new_value::JSONB;
-                    
-            UPDATE gold_standard
-            SET change_target = COALESCE(change_target, '');
-        """)
-    conn.commit()
+    if not table_existence['property_replacement']:
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE property_replacement
+                SET old_value = '""'
+                WHERE old_value = '';
 
-    print('Updated column types', flush=True)
+                ALTER TABLE property_replacement
+                ALTER COLUMN revision_id TYPE BIGINT USING revision_id::BIGINT,
+                ALTER COLUMN entity_id TYPE BIGINT USING entity_id::INT,
+                ALTER COLUMN timestamp TYPE TIMESTAMP WITH TIME ZONE USING timestamp::TIMESTAMP WITH TIME ZONE,
+                ALTER COLUMN property_id TYPE INT USING property_id::INT,
+                ALTER COLUMN old_value TYPE JSONB USING old_value::JSONB,
+                ALTER COLUMN new_value TYPE JSONB USING new_value::JSONB;
+                        
+                UPDATE property_replacement
+                SET change_target = COALESCE(change_target, '');
+            """)
+        conn.commit()
+
+    if not table_existence['gold_standard']:
+        with conn.cursor() as cur:
+            cur.execute("""
+                ALTER TABLE gold_standard
+                ALTER COLUMN revision_id TYPE BIGINT USING revision_id::BIGINT,
+                ALTER COLUMN entity_id TYPE BIGINT USING entity_id::INT,
+                ALTER COLUMN property_id TYPE INT USING property_id::INT,
+                ALTER COLUMN old_value TYPE JSONB USING old_value::JSONB,
+                ALTER COLUMN new_value TYPE JSONB USING new_value::JSONB;
+                        
+                UPDATE gold_standard
+                SET change_target = COALESCE(change_target, '');
+            """)
+        conn.commit()
+
+    if table_existence['gold_standard'] or table_existence['reverted_edit'] or table_existence['property_replacement']:
+        print('Updated column types', flush=True)
 
 def drop_predicted_columns(conn):
     print("Dropping predicted columns", flush=True)

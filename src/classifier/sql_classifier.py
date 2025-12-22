@@ -6,7 +6,7 @@ import pandas as pd
 from sklearn.preprocessing import MultiLabelBinarizer
 
 from .classifier import Classifier
-from ..const import LOG_DIR, BASIC_CHANGE_LABELS, REVERTED_EDIT_LABEL, PROPERTY_REPLACEMENT_LABEL
+from ..const import LOG_DIR, BASIC_CHANGE_LABELS, REVERTED_EDIT_LABEL, PROPERTY_REPLACEMENT_LABEL, WD_BASIC_TYPES, WD_ENTITY_TYPES, WD_STRING_TYPES
 from ..utils import drop_predicted_columns
 
 log_dir = Path(LOG_DIR)
@@ -395,6 +395,7 @@ class SQLClassifier(Classifier):
             new_value_label,
             old_value,
             old_value_label,
+            datatype,
             label,
             {predicted_label_cols}
         FROM gold_standard
@@ -420,22 +421,32 @@ class SQLClassifier(Classifier):
 
         result.to_csv('experiments/gs_predicted_true.csv')
 
-        for label in BASIC_CHANGE_LABELS:
+        datatypes = ['text', 'entity'] + WD_BASIC_TYPES
+        for datatype in datatypes:
+        
+            print(f"\n{'='*80}")
+            print(f"DATATYPE: {datatype.upper()}")
+            print(f"{'='*80}")
+
             # for the changes with more than one tag, if the baseline is correct it will go to each class
-            y_true = result[label]
-            y_pred = result[f"{label}_predicted"].astype(int)
+            for label in BASIC_CHANGE_LABELS:
+                if datatype in ('quantity', 'time', 'globecoordinate'):
+                    filtered_df = result[(result['datatype'] == datatype) & (result['label'].str.contains(label))]
+                elif datatype == 'entity':
+                    filtered_df = result[result['datatype'].isin(WD_ENTITY_TYPES)& (result['label'].str.contains(label))]
+                else:  # text
+                    filtered_df = result[result['datatype'].isin(WD_STRING_TYPES) & (result['label'].str.contains(label))]
+                
+                if filtered_df.empty:
+                    continue
 
-            accuracy = accuracy_score(y_true, y_pred)
-            precision = precision_score(y_true, y_pred, average='macro', zero_division=0)
-            recall = recall_score(y_true, y_pred, average='macro', zero_division=0)
-            f1 = f1_score(y_true, y_pred, average='macro', zero_division=0)
+                y_true = filtered_df[label]
+                y_pred = filtered_df[f"{label}_predicted"].astype(int)
 
-            print(f'Metrics for label: {label}')
-            print(f'  Accuracy: {accuracy:.4f}')
-            print(f'  Precision: {precision:.4f}')
-            print(f'  Recall: {recall:.4f}')
-            print(f'  F1-Score: {f1:.4f}')
-            print()
+                accuracy = accuracy_score(y_true, y_pred)
+
+                print(f'{label}:{accuracy:.4f}')
+
     
         ## REVERTED EDIT
 
@@ -464,15 +475,9 @@ class SQLClassifier(Classifier):
         y_pred = df[f"{predicted_label_col}"].astype(int)
 
         accuracy = accuracy_score(y_true, y_pred)
-        precision = precision_score(y_true, y_pred, average='macro', zero_division=0)
-        recall = recall_score(y_true, y_pred, average='macro', zero_division=0)
-        f1 = f1_score(y_true, y_pred, average='macro', zero_division=0)
 
         print(f'Metrics for label: {predicted_label_col}')
         print(f'  Accuracy: {accuracy:.4f}')
-        print(f'  Precision: {precision:.4f}')
-        print(f'  Recall: {recall:.4f}')
-        print(f'  F1-Score: {f1:.4f}')
 
         ## PROPERTY REPLACEMENT
 
@@ -501,12 +506,6 @@ class SQLClassifier(Classifier):
         y_pred = df[f"{predicted_label_col}"].astype(int)
 
         accuracy = accuracy_score(y_true, y_pred)
-        precision = precision_score(y_true, y_pred, average='macro', zero_division=0)
-        recall = recall_score(y_true, y_pred, average='macro', zero_division=0)
-        f1 = f1_score(y_true, y_pred, average='macro', zero_division=0)
 
         print(f'Metrics for label: {predicted_label_col}')
         print(f'  Accuracy: {accuracy:.4f}')
-        print(f'  Precision: {precision:.4f}')
-        print(f'  Recall: {recall:.4f}')
-        print(f'  F1-Score: {f1:.4f}')

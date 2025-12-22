@@ -19,3 +19,8 @@ logs/*
 clustering/experiments/*
 data/*
 config/*
+
+*.pkl
+*.png
+features/*
+gold_standard/*

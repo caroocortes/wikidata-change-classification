@@ -25,11 +25,16 @@ class ClassificationManager:
         start_time = time.time()
         print(f'Start loading gold standard for classification.')
         
-        copy_from_csv(self.classifier.sql_runner.conn, 'gold_standard/gold_standard.csv', 'gold_standard', ['revision_id','entity_id','entity_label','value_id','property_id','change_target','property_label','old_value','old_value_label','new_value','new_value_label','label','datatype', 'action', 'target'], ['revision_id', 'property_id', 'value_id', 'change_target'])
-        copy_from_csv(self.classifier.sql_runner.conn, 'gold_standard/reverted_edit.csv', 'reverted_edit', ["anchor_revision_id","revision_id","entity_id","entity_label","value_id","property_id","change_target","property_label","old_value","old_value_label","new_value","new_value_label","datatype","new_hash","old_hash","revision_rank","timestamp","comment","label"], ['revision_id', 'property_id', 'value_id', 'change_target'])
-        copy_from_csv(self.classifier.sql_runner.conn, 'gold_standard/property_replacement.csv', 'property_replacement', ["revision_id","entity_id","entity_label","value_id","property_id","change_target","property_label","old_value","old_value_label","new_value","new_value_label","datatype","action","target","comment","timestamp","label"], ['revision_id', 'property_id', 'value_id', 'change_target'])
+        exists_gs = copy_from_csv(self.classifier.sql_runner.conn, 'gold_standard/gold_standard.csv', 'gold_standard', ['revision_id','entity_id','entity_label','value_id','property_id','change_target','property_label','old_value','old_value_label','new_value','new_value_label','label','datatype', 'action', 'target'], ['revision_id', 'property_id', 'value_id', 'change_target'])
+        exists_rve = copy_from_csv(self.classifier.sql_runner.conn, 'gold_standard/reverted_edit.csv', 'reverted_edit', ["anchor_revision_id","revision_id","entity_id","entity_label","value_id","property_id","change_target","property_label","old_value","old_value_label","new_value","new_value_label","datatype","new_hash","old_hash","revision_rank","timestamp","comment","label"], ['revision_id', 'property_id', 'value_id', 'change_target'])
+        exists_pr = copy_from_csv(self.classifier.sql_runner.conn, 'gold_standard/property_replacement.csv', 'property_replacement', ["revision_id","entity_id","entity_label","value_id","property_id","change_target","property_label","old_value","old_value_label","new_value","new_value_label","datatype","action","target","comment","timestamp","label"], ['revision_id', 'property_id', 'value_id', 'change_target'])
         
-        update_column_types(self.classifier.sql_runner.conn)
+        table_existence = {
+            'gold_standard': exists_gs,
+            'reverted_edit': exists_rve,
+            'property_replacement': exists_pr
+        }
+        update_column_types(self.classifier.sql_runner.conn, table_existence=table_existence)
         print(f'Finished loading gold standard for classification. Took: {time.time() - start_time} seconds')
 
     def run_classifier(self):
@@ -46,3 +51,12 @@ class ClassificationManager:
 
     def calculate_evaluation_metrics(self):
         self.classifier.calculate_evaluation_metrics()
+
+    def train_classifier(self):
+        start_time = time.time()
+        print(f'Start training {self.classification_type} classifier.')
+        if self.classification_type == 'ML':
+            self.classifier.train_classifier()
+        else:
+            print('SQL classifier does not require training.')
+        print(f'Finished training {self.classification_type} classifier. Took: {time.time() - start_time} seconds')
