@@ -1,12 +1,8 @@
-from src.classifier.classification_manager import ClassificationManager
+from src.core.pipeline import ClassificationPipeline
 
 
 if __name__ == "__main__":
 
-    # manager = ClassificationManager('SQL')
-    # manager.evaluate_on_gold_standard()
-    # manager.calculate_evaluation_metrics()
+    pipeline = ClassificationPipeline(classifier_type='ml', db_config_path='src/config/db_config.json')
+    pipeline.train()
 
-    manager = ClassificationManager('ML')
-    manager.train_classifier()
-    # manager.calculate_evaluation_metrics()

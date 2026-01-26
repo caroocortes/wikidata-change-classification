@@ -1,0 +1,7 @@
+{
+    "scripts_dir": "src/classifiers/sql/scripts",
+    "table_names": {
+        "value_change_table": "value_changes",
+        "qualifier_change_table": "qualifier_changes"
+    }
+}

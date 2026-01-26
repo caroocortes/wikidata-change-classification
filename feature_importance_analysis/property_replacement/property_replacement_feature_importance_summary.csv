@@ -1,0 +1,9 @@
+label,feature,mean_abs_shap
+property_replacement,same_user,0.3191114335586732
+property_replacement,property_label_similarity,0.07826266547880369
+property_replacement,time_diff,0.23654368015450591
+property_replacement,action_encoded,0.0005388560298203787
+OVERALL,same_user,0.3191114335586732
+OVERALL,time_diff,0.23654368015450591
+OVERALL,property_label_similarity,0.07826266547880369
+OVERALL,action_encoded,0.0005388560298203787

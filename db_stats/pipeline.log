@@ -1,0 +1,1 @@
+Successfully executed query from stats_script.sql with params {'dataset_name': 'rest', 'revision_table': 'revision', 'value_change_table': 'value_change', 'datatype_metadata_change_table': 'datatype_metadata_change'}. Took 7354.068909168243 seconds

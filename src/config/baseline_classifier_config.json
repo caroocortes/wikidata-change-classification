@@ -1,0 +1,11 @@
+{
+    "table_names" : {
+        "change_table": "value_change",
+        "revision_table": "revision",
+        "change_metadata_table": "value_change_metadata",
+        "reference_change_table": "reference_change",
+        "qualifier_change_table": "qualifier_change",
+        "materialized_view": "change_timestamp_entity"
+    },
+    "sql_dir": "rules"
+}

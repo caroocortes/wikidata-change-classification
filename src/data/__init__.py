@@ -1,0 +1,5 @@
+"""Data package initialization."""
+
+from .loader import DataLoader
+
+__all__ = ['DataLoader']
