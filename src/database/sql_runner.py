@@ -52,4 +52,5 @@ class SQLRunner:
             raise e
 
     def __del__(self):
-        self.conn.close()
+        if self.conn:
+            self.conn.close()

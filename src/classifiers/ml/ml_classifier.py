@@ -948,7 +948,7 @@ class MLClassifier(BaseClassifier):
         predictions_files = []
         offset = 0
 
-        with open(f'{FEATURES_DIR}/features_cols_{dt_label}.pkl') as f:
+        with open(f'{FEATURES_DIR}/feature_cols_{dt_label}.pkl', 'wb') as f:
             feature_cols = pickle.load(f)
         
         feature_cols_str = ', '.join(feature_cols)

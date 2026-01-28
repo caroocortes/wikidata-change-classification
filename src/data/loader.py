@@ -140,6 +140,3 @@ class DataLoader:
             self.logger.debug(f"Dropped column: {col_name}")
         
         self.logger.info(f"Dropped {len(results)} predicted columns")
-    
-    def __del__(self):
-        self.sql_runner.close()
