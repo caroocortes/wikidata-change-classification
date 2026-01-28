@@ -1,5 +1,5 @@
 # =====================================
-# ========== LABELS, etc ==============
+#  LABELS, etc 
 # =====================================
 WD_STRING_TYPES = ['monolingualtext', 'string', 'external-id', 'url', 'commonsMedia', 'geo-shape', 'tabular-data', 'math', 'musical-notation', 'unknown-values']
 WD_ENTITY_TYPES = ['wikibase-item', 'wikibase-entityid', 'wikibase-property', 'wikibase-lexeme', 'wikibase-sense', 'wikibase-form', 'entity-schema']
@@ -24,14 +24,13 @@ CLASSES_PER_DATATYPE = {
 DATATYPE_INDEPENDENT_CLASSES = [REVERTED_EDIT_LABEL, PROPERTY_REPLACEMENT_LABEL, SOFT_INSERTIONS, SOFT_DELETIONS]
 
 # ===============================
-# ========== ML Models ==========
+#  ML Models 
 # ===============================
 ML_MODELS = ['kn', 'random_forest', 'gradient_boosting', 'xgboost']
 ML_MODELS_LABELS = ['K-Neighbors', 'Random Forest', 'Gradient Boosting', 'XGBoost']
-METRICS = ['precision', 'recall', 'accuracy', 'f1']
 
 # ===============================
-# ========== Paths ==============
+#  Paths 
 # ===============================
 TRAINING_INFO_DIR = 'src/classifiers/ml/training_info' # stores trained models
 FEATURES_DIR = 'src/classifiers/ml/features'
@@ -39,3 +38,20 @@ GOLD_STANDARD_DIR = 'gold_standard'
 CONFIG_DIR = 'src/config'
 LOG_DIR = 'logs'
 MODELS_CONFIG_PATH = 'src/config/models_config.json'
+TRAINING_RESULTS = 'src/results/training'
+BASELINE_RESULTS = 'src/results/baseline'
+CLASSIFICATION_RESULTS = 'src/results/classification'
+CHANGES_TO_CLASSIFY = 'src/changes_to_classify'
+
+
+
+BASE_KEY_TYPES = {
+    'revision_id': 'BIGINT',
+    'property_id': 'INT',
+    'value_id': 'TEXT',
+    'change_target': 'TEXT'
+}
+
+PROP_REP_KEY_TYPES = {
+    'pair_id': 'BIGINT'
+}

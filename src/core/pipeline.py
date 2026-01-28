@@ -22,25 +22,13 @@ class ClassificationPipeline:
     2. Loading necessary data (full dataset or gold standard)
     3. Running classification
     4. Evaluating results
-    5. Generating reports
-    
-    Example usage:
-        # For training ML classifier
-        pipeline = ClassificationPipeline(classifier_type='ml', config_path='config/db_config.json')
-        pipeline.load_training_data()
-        pipeline.train()
-        
-        # For running SQL baseline classification
-        pipeline = ClassificationPipeline(classifier_type='sql', config_path='config/db_config.json')
-        pipeline.run_classification()
-        pipeline.evaluate()
 
     """
     
     def __init__(
         self, 
         classifier_type: str,
-        db_config_path: str
+        db_config_path=None
     ):
         """
         Initialize the classification pipeline.
@@ -52,15 +40,14 @@ class ClassificationPipeline:
         """
         self.classifier_type = classifier_type.lower()
 
-        # Setup logging
         self._setup_logging()
+
+        self.data_loader = None
+        if db_config_path:
+            self.data_loader = DataLoader(db_config_path=db_config_path)
         
         # Initialize classifier
         self._initialize_classifier()
-        
-        # TODO: uncomment
-        # # Initialize data loader
-        # self.data_loader = DataLoader(db_config_path=db_config_path)
         
         self.logger.info(f"Pipeline initialized with {self.classifier_type} classifier")
     
@@ -83,12 +70,19 @@ class ClassificationPipeline:
     def _initialize_classifier(self):
         """Initialize the appropriate classifier based on type."""
         if self.classifier_type == 'ml':
+            
             config_path = f'{CONFIG_DIR}/ml_classifier_config.json'
-            self.classifier = MLClassifier(config_path=config_path, classifier_type='ml')
+            conn = None
+            if self.data_loader:
+                conn = self.data_loader.sql_runner.get_connection()
+            self.classifier = MLClassifier(config_path=config_path, classifier_type='ml',connection=conn)
+
         elif self.classifier_type == 'baseline':
+            
             config_path = f'{CONFIG_DIR}/baseline_classifier_config.json'
             db_config_path = f'{CONFIG_DIR}/db_config.json'
             self.classifier = BaselineClassifier(db_config_path=db_config_path, config_path=config_path, classifier_type='baseline')
+        
         else:
             raise ValueError(
                 f"Unknown classifier type: {self.classifier_type}. "
@@ -98,7 +92,7 @@ class ClassificationPipeline:
     # ========== Data Loading ==========
     def load_gold_standard(self):
         """
-        Load gold standard datasets for evaluation.
+        Load gold standard datasets to DB.
         
         This loads:
         - Main gold standard dataset
@@ -115,25 +109,19 @@ class ClassificationPipeline:
 
     
     # ========== Classification ==========
-    def run_classification(self, gold_standard: bool = False):
+    def run_classification(self, datatype, table_prefix, max_batches=None):
         """
-        Run classification on the main dataset.
-        
-        Args:
-            gold_standard: If True, runs on gold standard
+        Run classification on new changes with the trained ML model.
         """
         start_time = time.time()
         
-        if gold_standard:
-            self.logger.info(f"Running {self.classifier_type} classification on gold standard")
-        else:
-            self.logger.info(f"Running {self.classifier_type} classification on main dataset")
-        
-        self.classifier.run_classification(gold_standard=gold_standard)
+        self.classifier.classify_in_batches(datatype, table_prefix, max_batches=max_batches)
         
         elapsed = time.time() - start_time
         self.logger.info(f"Classification completed in {elapsed:.2f}s")
     
+    
+    # ========== Training ==========
     def train(self):
         """
         Train ML classifier.
@@ -146,7 +134,7 @@ class ClassificationPipeline:
             return
         
         start_time = time.time()
-        self.logger.info("Training ML classifier...")
+        self.logger.info("Started training ML classifier")
         
         self.classifier.train_classifier()
         
@@ -154,8 +142,7 @@ class ClassificationPipeline:
         self.logger.info(f"Training completed in {elapsed:.2f}s")
     
     # ========== Evaluation ==========
-    
-    def evaluate(self, gold_standard: bool = False) -> Dict[str, Any]:
+    def evaluate(self) -> Dict[str, Any]:
         """
         Evaluate classifier performance.
             
@@ -165,10 +152,7 @@ class ClassificationPipeline:
         start_time = time.time()
         self.logger.info("Evaluating classifier performance.")
         
-        if gold_standard:
-            metrics = self.evaluate_on_gold_standard()
-        else:
-            metrics = self.evaluate_on_main_dataset()
+        metrics = self.classifier.evaluate()
         
         elapsed = time.time() - start_time
         self.logger.info(f"Evaluation completed in {elapsed:.2f}s")
@@ -176,45 +160,4 @@ class ClassificationPipeline:
         return metrics
     
     
-    def run_full_pipeline(
-        self,
-        train_ml: bool = False,
-        classify: bool = True,
-        evaluate: bool = True
-    ):
-        """
-        Run the complete pipeline from start to finish.
-        
-        Args:
-            train_ml: Whether to train ML classifier (only for ML type)
-            classify: Whether to run classification
-            evaluate: Whether to evaluate results
-        """
-        self.logger.info("=" * 60)
-        self.logger.info("STARTING PIPELINE")
-        self.logger.info("=" * 60)
-        
-        pipeline_start = time.time()
-        
-        try:
-            # Step 1: Train if needed
-            if train_ml and self.classifier_type == 'ml':
-                self.train()
-            
-            # Step 2: Classify
-            if classify:
-                self.run_classification()
-            
-            # Step 3: Evaluate
-            if evaluate:
-                self.evaluate(gold_standard=True)
-            
-            total_elapsed = time.time() - pipeline_start
-            self.logger.info("=" * 60)
-            self.logger.info(f"PIPELINE COMPLETED SUCCESSFULLY in {total_elapsed:.2f}s")
-            self.logger.info("=" * 60)
-            
-        except Exception as e:
-            self.logger.error(f"Pipeline failed: {str(e)}", exc_info=True)
-            raise
     

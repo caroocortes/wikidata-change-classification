@@ -180,3 +180,17 @@ def drop_predicted_columns(conn):
     conn.commit()
 
     print("Dropped predicted columns", flush=True)
+
+def get_time_unit(elapsed_time):
+    """
+    Convert elapsed time in seconds to appropriate unit.
+    Returns (value, unit)
+    """
+    if elapsed_time >= 86400:  # 60*60*24 = 86400 seconds in a day
+        return elapsed_time / 86400, 'days'
+    elif elapsed_time >= 3600:  # 60*60 = 3600 seconds in an hour
+        return elapsed_time / 3600, 'hours'
+    elif elapsed_time >= 60:
+        return elapsed_time / 60, 'minutes'
+    else:
+        return elapsed_time, 'seconds'

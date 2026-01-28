@@ -5,6 +5,9 @@ class SQLRunner:
     def __init__(self, db_config):
         self.conn = psycopg2.connect(**db_config)
 
+    def get_connection(self):
+        return self.conn
+
     def execute_query(self, query, params=None):
         try:
             with self.conn.cursor() as cur:

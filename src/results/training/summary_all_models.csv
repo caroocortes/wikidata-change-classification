@@ -1,0 +1,5 @@
+,Model,Mean F1,Mean Precision,Mean Recall,Mean Accuracy
+0,kn,0.82,0.83,0.82,0.92
+1,random_forest,0.84,0.85,0.84,0.93
+2,gradient_boosting,0.85,0.85,0.85,0.93
+3,xgboost,0.84,0.84,0.84,0.93
