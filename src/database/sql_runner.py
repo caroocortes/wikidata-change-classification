@@ -1,8 +1,9 @@
-import psycopg2
 import pandas as pd
+import psycopg2
 
 class SQLRunner:
     def __init__(self, db_config):
+
         self.conn = psycopg2.connect(**db_config)
 
     def get_connection(self):

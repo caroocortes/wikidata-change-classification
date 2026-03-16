@@ -3,7 +3,7 @@
 # =====================================
 WD_STRING_TYPES = ['monolingualtext', 'string', 'external-id', 'url', 'commonsMedia', 'geo-shape', 'tabular-data', 'math', 'musical-notation', 'unknown-values']
 WD_ENTITY_TYPES = ['wikibase-item', 'wikibase-entityid', 'wikibase-property', 'wikibase-lexeme', 'wikibase-sense', 'wikibase-form', 'entity-schema']
-WD_BASIC_TYPES = ['globecoordinate', 'quantity', 'time']
+WD_BASIC_TYPES = ['globecoordinate_latitude', 'globecoordinate_longitude', 'quantity', 'time']
 
 BASIC_CHANGE_LABELS = ['textual_change', 're_formatting', 'refinement', 'unrefinement', 'property_value_update', 'link_change', 'rewording']
 
@@ -42,7 +42,12 @@ TRAINING_RESULTS = 'src/results/training'
 BASELINE_RESULTS = 'src/results/baseline'
 CLASSIFICATION_RESULTS = 'src/results/classification'
 CHANGES_TO_CLASSIFY = 'src/changes_to_classify'
+SCRIPT_DIR = 'src/analysis/scripts'
+SQL_SCRIPT_DIR = 'src/analysis/sql'
+RESULTS_DIR = 'src/analysis/results'
+LOGS_DIR = 'src/analysis/logs'
 
+YAML_SETUP_PATH = 'set_up.yml'
 
 
 BASE_KEY_TYPES = {

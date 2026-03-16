@@ -4,6 +4,6 @@
         "password": "postgres",
         "dbname": "wikidata",
         "port": 5433,
-        "host": "10.130.31.18"
+        "host": "10.130.31.43"
     }
 }

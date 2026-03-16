@@ -40,7 +40,7 @@ class BaseClassifier(ABC):
     
     
     @abstractmethod
-    def run_classification(self, gold_standard: bool = False):
+    def classify_changes(self):
         """
         Run the classification process.
         

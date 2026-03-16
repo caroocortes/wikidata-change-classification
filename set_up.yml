@@ -1,0 +1,34 @@
+database_config_path: src/config/db_config_cluster.json
+
+analysis:
+
+  general:
+    db_tables:
+      reload_data: true
+    entity_stats:
+      reload_data: true
+      filter_big_entities: true
+    stats_sa_ao:
+      reload_data: true
+    stats_used_tables:
+      reload_data: true
+    stats_feature_tables:
+      reload_data: true
+    created_entities_overtime:
+      reload_data: true
+
+  classification_analysis:
+    distribution_change_types:
+      reload_data: false
+    reverted_edit_analysis:
+      reload_data: false
+    redirects_analysis:
+      reload_data: false
+    general_distribution_of_changes:
+      reload_data: false
+    entity_types_analysis:
+      reload_data: false
+    property_analysis:
+      reload_data: false
+
+  

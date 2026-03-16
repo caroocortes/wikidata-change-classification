@@ -109,13 +109,13 @@ class ClassificationPipeline:
 
     
     # ========== Classification ==========
-    def run_classification(self, datatype, table_prefix, max_batches=None):
+    def run_classification(self, datatype, table_prefix, max_batches=None, db_config=None):
         """
         Run classification on new changes with the trained ML model.
         """
         start_time = time.time()
         
-        self.classifier.classify_in_batches(datatype, table_prefix, max_batches=max_batches)
+        self.classifier.classify_in_batches(datatype, table_prefix, max_batches=max_batches, db_config=db_config)
         
         elapsed = time.time() - start_time
         self.logger.info(f"Classification completed in {elapsed:.2f}s")

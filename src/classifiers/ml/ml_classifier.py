@@ -11,6 +11,7 @@ from iterstrat.ml_stratifiers import MultilabelStratifiedKFold
 from IPython.display import display
 import csv
 
+import io
 import matplotlib.pyplot as plt
 import pickle
 import time
@@ -24,6 +25,8 @@ from src.utils.utils import get_time_unit
 from src.classifiers.base_classifier import BaseClassifier
 from .ml_features import create_text_features, create_entity_features, create_globe_coordinate_features, create_quantity_features, create_time_features, create_reverted_edit_features, create_property_replacement_features
 from src.utils.const import BASE_KEY_TYPES, PROP_REP_KEY_TYPES, CHANGES_TO_CLASSIFY, CLASSIFICATION_RESULTS, TRAINING_RESULTS, MODELS_CONFIG_PATH, WD_ENTITY_TYPES, WD_STRING_TYPES, WD_BASIC_TYPES, ML_MODELS, ML_MODELS_LABELS, DATATYPE_INDEPENDENT_CLASSES, REVERTED_EDIT_LABEL, TRAINING_INFO_DIR, PROPERTY_REPLACEMENT_LABEL, FEATURES_DIR, GOLD_STANDARD_DIR
+from src.database.sql_runner import SQLRunner
+
 
 class MLClassifier(BaseClassifier):
     def __init__(self, config_path: str, classifier_type: str = "ml", connection=None):
@@ -37,7 +40,9 @@ class MLClassifier(BaseClassifier):
 
         self.conn = connection
 
-
+    # ------------------------------------------------------------------------
+    # Methods to train models
+    # ------------------------------------------------------------------------
     def get_features(self, dt_class, df):
         feature_cols = []
             
@@ -52,14 +57,17 @@ class MLClassifier(BaseClassifier):
 
         elif dt_class in WD_BASIC_TYPES:
 
-            if dt_class == 'globecoordinate':
+            if dt_class == 'globecoordinate_latitude' or dt_class == 'globecoordinate_longitude':
                 df, feature_cols = create_globe_coordinate_features(df, feature_cols)
             elif dt_class == 'quantity':
                 df, feature_cols = create_quantity_features(df, feature_cols)
             elif dt_class == 'time':
                 df, feature_cols = create_time_features(df, feature_cols)
 
-            df_type = df[df['datatype'] == dt_class]
+            if dt_class == 'globecoordinate_latitude' or dt_class == 'globecoordinate_longitude':
+                df_type = df[df['datatype'] == 'globecoordinate']
+            else:
+                df_type = df[df['datatype'] == dt_class]
 
         elif dt_class == REVERTED_EDIT_LABEL:
             df_type, feature_cols = create_reverted_edit_features(df, feature_cols)
@@ -69,7 +77,7 @@ class MLClassifier(BaseClassifier):
 
         return df_type, feature_cols
     
-    def perform_grid_search(self, classifier, is_multilabel, dt_class, X_scaled, y_binary, model_config):
+    def perform_grid_search(self, classifier, is_multilabel, dt_class, X_scaled, y_binary, model_config, cv):
         print(f'Performing grid search for {classifier} on datatype {dt_class}...')
         """
             Model Config structure:
@@ -87,6 +95,11 @@ class MLClassifier(BaseClassifier):
                 "Gradient_Boosting": {...} // the same structure as RF
             }
         """
+
+        if model_config.get(classifier, {}).get(dt_class, {}) != {}: # best params already calcualted -> just return them
+            print('Grid search already performed. Loading best params')
+            best_params = model_config[classifier][dt_class]
+            return best_params
         
         if classifier == 'Random_Forest':
             param_grid = {
@@ -100,13 +113,13 @@ class MLClassifier(BaseClassifier):
             }
             
             # This already does cross-validation internally (fold=5)
-            grid_search = GridSearchCV(RandomForestClassifier(self.random_state), param_grid=param_grid, cv=5)
+            grid_search = GridSearchCV(RandomForestClassifier(self.random_state), param_grid=param_grid, cv=cv)
 
         elif classifier == 'KN':
             param_grid = {
                 'n_neighbors': [3, 5, 7, 10, 15, 20, 25, 30]
             }
-            grid_search = GridSearchCV(KNeighborsClassifier(), param_grid=param_grid, cv=5)
+            grid_search = GridSearchCV(KNeighborsClassifier(), param_grid=param_grid, cv=cv)
 
         elif classifier == 'Gradient_Boosting':
             param_grid = {
@@ -126,10 +139,10 @@ class MLClassifier(BaseClassifier):
                 grid_search = GridSearchCV(
                     MultiOutputClassifier(non_multilabel_model), 
                     param_grid=param_grid, 
-                    cv=5
+                    cv=cv
                 )
             else:
-                grid_search = GridSearchCV(non_multilabel_model, param_grid=param_grid, cv=5)
+                grid_search = GridSearchCV(non_multilabel_model, param_grid=param_grid, cv=cv)
 
         elif classifier == 'XGBoost': # does not require meta model for multi-label
             param_grid = {
@@ -137,7 +150,7 @@ class MLClassifier(BaseClassifier):
                 'max_depth': [3, 5, 7, 10]
             }
 
-            grid_search = GridSearchCV(XGBClassifier(random_state=self.random_state), param_grid=param_grid, cv=5)
+            grid_search = GridSearchCV(XGBClassifier(random_state=self.random_state), param_grid=param_grid, cv=cv)
 
         grid_search.fit(X_scaled, y_binary)
         best_params = grid_search.best_params_
@@ -154,7 +167,7 @@ class MLClassifier(BaseClassifier):
 
         return best_params
 
-    def get_model_instance(self, classifier, is_multilabel, dt_class, X_scaled, y_binary, model_config):
+    def get_model_instance(self, classifier, is_multilabel, best_params):
         """
             Returns model instance for the specified classifier.
             If the parameters for the model have already been optimized, they are loaded from model_config. If not, 
@@ -162,11 +175,6 @@ class MLClassifier(BaseClassifier):
         """
         
         if classifier == 'Random_Forest': # already supports multi-label
-            
-            if not model_config.get(classifier, {}).get(dt_class, {}):
-                best_params = self.perform_grid_search(classifier, is_multilabel, dt_class, X_scaled, y_binary, model_config)
-            else:
-                best_params = model_config[classifier][dt_class]
             
             model = RandomForestClassifier(
                 n_estimators=best_params['n_estimators'], 
@@ -177,19 +185,9 @@ class MLClassifier(BaseClassifier):
 
         elif classifier == 'KN': # already supports multi-label
 
-            if not model_config.get(classifier, {}).get(dt_class, {}):
-                best_params = self.perform_grid_search(classifier, is_multilabel, dt_class, X_scaled, y_binary, model_config)
-            else:
-                best_params = model_config[classifier][dt_class]
-
-            model = KNeighborsClassifier(n_neighbors=model_config[classifier][dt_class]['n_neighbors'])
+            model = KNeighborsClassifier(n_neighbors=best_params['n_neighbors'])
         
         elif classifier == 'Gradient_Boosting': # needs ensemble (MultiOutputClassifier) to support multi-label
-
-            if not model_config.get(classifier, {}).get(dt_class, {}):
-                best_params = self.perform_grid_search(classifier, is_multilabel, dt_class, X_scaled, y_binary, model_config)
-            else:
-                best_params = model_config[classifier][dt_class]
                 
             # Base classifier
             base_model = GradientBoostingClassifier(
@@ -203,10 +201,6 @@ class MLClassifier(BaseClassifier):
                 model = MultiOutputClassifier(base_model)
 
         elif classifier == 'XGBoost': 
-            if not model_config.get(classifier, {}).get(dt_class, {}):
-                best_params = self.perform_grid_search(classifier, is_multilabel, dt_class, X_scaled, y_binary, model_config)
-            else:
-                best_params = model_config[classifier][dt_class]
             
             # Base classifier
             model = XGBClassifier(
@@ -250,10 +244,14 @@ class MLClassifier(BaseClassifier):
         all_y_test = []
         all_y_pred = []
 
+        # do grid search to get best params (if grid search was performed before, just reads the stored best params)
+        best_params = self.perform_grid_search(classifier, is_multilabel, dt_class, X_scaled, y_binary, model_config, cv)
+
         start_time = time.time()
         for fold, (train_index, test_index) in enumerate(split, 1):
 
-            model, base_model = self.get_model_instance(classifier, is_multilabel, dt_class, X_scaled, y_binary, model_config)
+            model, base_model = self.get_model_instance(classifier, is_multilabel, best_params)
+
             X_train, X_test = X_scaled[train_index], X_scaled[test_index]
             y_train, y_test = y_binary[train_index], y_binary[test_index]
 
@@ -334,13 +332,13 @@ class MLClassifier(BaseClassifier):
                 'model': clf,
                 'base_model': base_model if classifier == 'Gradient_Boosting' and is_multilabel else None,
                 'features': feature_cols,
-                'train_index': train_index, 
-                'test_index': actual_test_index,
+                # 'train_index': train_index, 
+                # 'test_index': actual_test_index,
                 'multi_label_binarizer': label_binarizer,
-                'label_distribution': Counter(all_labels),
-                'X_test': X_test,
-                'y_pred': y_pred,
-                'y_test': y_test
+                # 'label_distribution': Counter(all_labels),
+                # 'X_test': X_test,
+                # 'y_pred': y_pred,
+                # 'y_test': y_test
             })
 
         training_time = time.time() - start_time
@@ -378,65 +376,394 @@ class MLClassifier(BaseClassifier):
 
         return results_folds, micro_averages
     
-    def calculate_evaluation_metrics(self, model='Random_Forest'):
+    def train_classifier(self):
+        os.makedirs(FEATURES_DIR, exist_ok=True)
+        
+        datatypes_classes = WD_BASIC_TYPES + ['text', 'entity'] 
 
-        with open(f'datatype_classifiers_multilabel_{model.lower()}.pkl', 'rb') as f:
-            classifiers = pickle.load(f)
+        classifiers_rf = dict()
+        classifiers_kn = dict()
+        classifiers_gb = dict()
+        classifiers_xgb = dict()
+        
+        scalers = dict()
+        for dt_class in datatypes_classes:
+            print(f"\n{'='*50}")
+            print(f"Training classifier for: {dt_class}")
+            print(f"{'='*50}")
 
-        for datatype, folds_info in classifiers.items(): # info is a list of dicts, one per fold
-            print(f"\n{'='*80}")
-            print(f"DATATYPE: {datatype.upper()}")
+            if dt_class == 'globecoordinate_latitude' or dt_class == 'globecoordinate_longitude':
+                df_gs = pd.read_csv(f'{GOLD_STANDARD_DIR}/gold_standard_globecoordinate.csv')
+            else:
+                df_gs = pd.read_csv(f'{GOLD_STANDARD_DIR}/gold_standard.csv')
+
+            #############################
+            #   Load or create features
+            #############################
+            if os.path.isfile(f'{FEATURES_DIR}/gs_features_{dt_class}.csv'):
+                df = pd.read_csv(f'{FEATURES_DIR}/gs_features_{dt_class}.csv', index_col=0)
+                with open(f'{FEATURES_DIR}/feature_cols_{dt_class}.pkl', 'rb') as f:
+                    feature_cols = pickle.load(f)
+
+                print('Features already exist, loading.')
+            else:
+                print('Features dont exist, creating.')
+                df = df_gs
+                if dt_class in DATATYPE_INDEPENDENT_CLASSES: # reverted edit, property replacement have their own files
+                    df = pd.read_csv(f'{GOLD_STANDARD_DIR}/{dt_class}.csv')
+
+                # df is already filtered per datatype inside get_features
+                df, feature_cols = self.get_features(dt_class, df)
+
+                os.makedirs(FEATURES_DIR, exist_ok=True)
+                df.to_csv(f'{FEATURES_DIR}/gs_features_{dt_class}.csv', index=True)
+
+            if dt_class == 'globecoordinate_latitude':
+                df = df[df['label_latitude'].notna()]  # only rows where latitude changed
+                df['label'] = df['label_latitude']     # use latitude label
+            elif dt_class == 'globecoordinate_longitude':
+                df = df[df['label_longitude'].notna()] # only rows where longitude changed
+                df['label'] = df['label_longitude']    # use longitude label
             
-            num_folds = len(folds_info)
-
-            overall_accuracy_all_folds = {}
-            overall_precision_all_folds = {}
-            overall_recall_all_folds = {}
-            overall_f1_all_folds = {}
-            label_distribution = folds_info[0].get('label_distribution', {}) # it's the same for all folds
-            features = folds_info[0].get('features', [])
-
-            for fold in folds_info:
-                for label, metric_values in fold['metrics_results'].items(): # metric values for this fold
-                    
-                    if label not in overall_accuracy_all_folds:
-                        overall_accuracy_all_folds[label] = 0
-                    overall_accuracy_all_folds[label] += metric_values['accuracy']
-                    
-                    if label not in overall_precision_all_folds:
-                        overall_precision_all_folds[label] = 0
-                    overall_precision_all_folds[label] += metric_values['precision']
-                    
-                    if label not in overall_recall_all_folds:
-                        overall_recall_all_folds[label] = 0
-                    overall_recall_all_folds[label] += metric_values['recall']
-
-                    if label not in overall_f1_all_folds:
-                        overall_f1_all_folds[label] = 0
-                    overall_f1_all_folds[label] += metric_values['f1']
-
-            print('Metric values averaged across all folds:')
-            for label in overall_accuracy_all_folds.keys():
-                overall_accuracy_all_folds[label] = overall_accuracy_all_folds[label] / num_folds
-                overall_precision_all_folds[label] = overall_precision_all_folds[label] / num_folds
-                overall_recall_all_folds[label] = overall_recall_all_folds[label] / num_folds
-                overall_f1_all_folds[label] = overall_f1_all_folds[label] / num_folds
-                print(f"LABEL: {label.upper()}")
-
-                print(f"Accuracy': {overall_accuracy_all_folds[label]:.3f}")
-                print(f"Precision': {overall_precision_all_folds[label]:.3f}")
-                print(f"Recall': {overall_recall_all_folds[label]:.3f}")
-                print(f"F1 Score': {overall_f1_all_folds[label]:.3f}")
-
-                print(f"{'-'*80}")
-
-            print(f"\nLabel Distribution:")
-            for label, distribution in label_distribution.items():
-                print(f"'{label}': {distribution}")
+            if dt_class == PROPERTY_REPLACEMENT_LABEL:
+                # de duplicate by pair_id because the features are the same for all the rows in the group, then I would have duplicated rows
+                df = df.groupby('pair_id', as_index=False).first() # keep only one row per pair_id
             
-            print(f"\nFeatures: {features}")
-            print(f"{'='*80}")
+            # Fill NAN/Inf with 0
+            X = df[feature_cols].astype(float).fillna(0) # features
+            print(X.shape)
+            X.replace([np.inf, -np.inf], np.nan).fillna(0, inplace=True)
+            
+            # Remove zero-variance features
+            zero_std_cols = X.columns[X.std() == 0]
 
+            if len(zero_std_cols) > 0:
+                X = X.drop(columns=zero_std_cols)
+                print('Removed zero-variance features: ', zero_std_cols.tolist())
+
+            with open(f'{FEATURES_DIR}/feature_cols_{dt_class}.pkl', 'wb') as f:
+                pickle.dump([f for f in feature_cols if f not in zero_std_cols], f) # remove zero-variance features
+            
+            # Scale
+            path_to_scalers = f'{FEATURES_DIR}/scalers.pkl'
+            if os.path.exists(path_to_scalers):
+                with open(path_to_scalers, 'rb') as f:
+                    scalers = pickle.load(f)
+                scaler = scalers[dt_class]
+                X_scaled = scaler.transform(X)
+            else:# else: uses the scaler created in the beggining and it gets saved at the end
+                scaler = StandardScaler()
+                X_scaled = scaler.fit_transform(X)
+                scalers[dt_class] = scaler
+
+            # Split label into binary columns
+            label_binarizer = None
+            if dt_class not in DATATYPE_INDEPENDENT_CLASSES:
+                df['labels_list'] = df['label'].fillna('').str.split(',').apply(lambda x: [l.strip() for l in x])
+        
+                all_labels = [label for labels in df['labels_list'] for label in labels]
+
+                # To do multi-label classification we need 1 column per label
+                label_binarizer = MultiLabelBinarizer()
+                y_binary = label_binarizer.fit_transform(df['labels_list'])
+                
+            else: # for reverted edit, property replacement I only have single labels
+                label_binarizer = LabelBinarizer()
+                df['label'] = df['label'].fillna(f'non_{dt_class}')# fills nan with non_reverted_edit, non_property_replacement, etc.
+                all_labels = df['label'].tolist() 
+                y_binary = label_binarizer.fit_transform(df['label'])
+
+            results_folds_rf, micro_averages_rf = self.perform_kfold_training(X_scaled, y_binary, dt_class, label_binarizer, all_labels, feature_cols, df.index.values, classifier='Random_Forest')
+            results_folds_kn, micro_averages_kn = self.perform_kfold_training(X_scaled, y_binary, dt_class, label_binarizer, all_labels, feature_cols, df.index.values, classifier='KN')
+            results_folds_gb, micro_averages_gb = self.perform_kfold_training(X_scaled, y_binary, dt_class, label_binarizer, all_labels, feature_cols, df.index.values, classifier='Gradient_Boosting')
+            results_folds_xg, micro_averages_xg = self.perform_kfold_training(X_scaled, y_binary, dt_class, label_binarizer, all_labels, feature_cols, df.index.values, classifier='XGBoost')
+
+            classifiers_rf[dt_class] = {
+                'results_folds': results_folds_rf,
+                'micro_averages': micro_averages_rf
+            }
+
+            classifiers_kn[dt_class] = {
+                'results_folds': results_folds_kn,
+                'micro_averages': micro_averages_kn
+            }
+
+            classifiers_gb[dt_class] = {
+                'results_folds': results_folds_gb,
+                'micro_averages': micro_averages_gb
+            }
+
+            classifiers_xgb[dt_class] = {
+                'results_folds': results_folds_xg,
+                'micro_averages': micro_averages_xg
+            }
+
+        models_to_save = {
+            'random_forest': classifiers_rf,
+            'kn': classifiers_kn,
+            'gradient_boosting': classifiers_gb,
+            'xgboost': classifiers_xgb
+        }
+
+        os.makedirs(TRAINING_INFO_DIR, exist_ok=True)
+
+        for model, dict_ in models_to_save.items():
+            if not os.path.isfile(f'{TRAINING_INFO_DIR}/training_info_{model}.pkl'):
+                with open(f'{TRAINING_INFO_DIR}/training_info_{model}.pkl', 'wb') as f:
+                    pickle.dump(dict_, f)
+            else:
+                try:
+                    with open(f'{TRAINING_INFO_DIR}/training_info_{model}.pkl', 'rb') as f:
+                        info = pickle.load(f)
+                except Exception as e:
+                    print(f"Error loading existing training info for {model}: {e}")
+                    raise e
+                
+                for dt_class in dict_.keys():
+                    info[dt_class] = dict_[dt_class]
+                
+                with open(f'{TRAINING_INFO_DIR}/training_info_{model}.pkl', 'wb') as f:
+                    pickle.dump(info, f)
+
+        path_to_scaler = f'{FEATURES_DIR}/scalers.pkl'
+        if not os.path.exists(path_to_scaler):
+            with open(path_to_scaler, 'wb') as f:
+                pickle.dump(scalers, f)
+
+        with open(f'{TRAINING_INFO_DIR}/training_runtimes.pkl', 'wb') as f:
+            pickle.dump(self.runtimes, f)
+
+        for dt_class, runtime_models in self.runtimes.items():
+
+            print(f'# ------ {dt_class.upper()} ------ #')
+            for model, runtime in runtime_models.items():
+                print(f'{model}: {runtime} seconds')
+            print('# ------------------------------ #')
+        
+    # ------------------------------------------------------------------------
+    # Methods to classify changes with the trained models
+    # ------------------------------------------------------------------------
+    def classify_changes(self, df, X, X_index, dt_label):
+        """
+            We do ensemble voting with the models from all folds
+            Make all models prdict, average the prob for the classes across all folds, pick the probs that are > 0.5
+            If no prob is > 0.5, take the highest one (this inherently means that change will only have one label assigned, 
+            for the other cases multiple labels may be assigned)
+        """
+        with open(f'{FEATURES_DIR}/scalers.pkl', 'rb') as f:
+            scalers = pickle.load(f)
+
+        # scale features with same scalers used during training
+        scaler = scalers[dt_label]
+        X_scaled = scaler.transform(X)
+
+        # load best model
+        with open(f'{TRAINING_RESULTS}/best_model_training_info.pkl', 'rb') as f:
+            training_info_model = pickle.load(f)
+
+        # load results_folds, has the trained model
+        results_folds = training_info_model[dt_label]['results_folds']
+
+        all_predictions = []
+
+        for i, fold_result in enumerate(results_folds):
+            model = fold_result['model']
+            
+            # Get probability predictions for each class
+            # For multi-label, this returns shape (n_samples, n_classes)
+            pred_proba = model.predict_proba(X_scaled)
+            
+            # predict_proba for multi-label returns list of arrays (one per class)
+            # Each element is (n_samples, 2) for [prob_class_0, prob_class_1]
+            # want (n_samples, n_classes) with prob of class being 1
+            
+            if isinstance(pred_proba, list):  # Multi-label case
+                # positive class (index 1) for each label
+                # each p is an array of lists, corresponding to a specific label
+                # when we do p[:, 1] we are getting the prob of class 1 for all examples, for that label
+                # with np.column_stack, we stack them on a column, so we get:
+                # e.g. pred_proba = array([[0.99799539, 0.00200461], [0.99799539, 0.00200461],[0.00441102, 0.99558898]]), array([[0.99322399, 0.00677601],[0.99606133, 0.00393867],[0.01199732, 0.98800268]])
+                # p = array([[0.99799539, 0.00200461], [0.99799539, 0.00200461],[0.00441102, 0.99558898]])
+                # p[:, 1] = [ 0.00200461
+                #             0.00200461
+                #             0.99558898 ]
+                # for the next label, it will be another column
+                pred_proba_positive = np.column_stack([p[:, 1] for p in pred_proba]) 
+            else:  # Single-label case
+                pred_proba_positive = pred_proba
+            
+            # has one array for each fold
+            all_predictions.append(pred_proba_positive)
+
+        # Stack all predictions: shape (n_folds, n_samples, n_classes)
+        all_predictions = np.array(all_predictions)
+
+        # Average across folds: shape (n_samples, n_classes)
+        avg_prediction = np.mean(all_predictions, axis=0)
+
+        # Apply 0.5 threshold for each instance
+        final_labels = (avg_prediction >= 0.5).astype(int)
+
+        # Apply fallback for instances with no labels
+        for i in range(len(final_labels)):
+            if not final_labels[i].any():  # No label assigned
+                highest_idx = np.argmax(avg_prediction[i])
+                final_labels[i, highest_idx] = 1
+
+        # get label binarizer to create column of labels
+        multi_label_binarizer = results_folds[0]['multi_label_binarizer'] # it's the same for all folds
+
+        # get actual label names
+        final_labels_transformed = multi_label_binarizer.inverse_transform(final_labels)
+
+        # create list of labels
+        pred_df = pd.DataFrame({
+            'predicted_labels': [', '.join(labels) if labels else '(none)' for labels in final_labels_transformed]
+        }, index=X_index)
+
+        # join labels list to original data
+        results_df = df.join(pred_df)
+
+        # For globecoordinate changes, it can happen that only the lat/long changes
+        # not necessarily both. Therefore, I apply the same logic as the other one and then just check, 
+        # if they didn't change, I wipe the label
+        if dt_label == 'globecoordinate_latitude':
+            no_change_mask = results_df['latitude_old'].apply(lambda x: float(x) if x else None) == \
+                             results_df['latitude_new'].apply(lambda x: float(x) if x else None)
+            results_df.loc[no_change_mask, 'predicted_labels'] = ''
+
+        elif dt_label == 'globecoordinate_longitude':
+            no_change_mask = results_df['longitude_old'].apply(lambda x: float(x) if x else None) == \
+                             results_df['longitude_new'].apply(lambda x: float(x) if x else None)
+            results_df.loc[no_change_mask, 'predicted_labels'] = ''
+
+        return results_df
+    
+    def classify_in_batches(self, dt_label, table_prefix, batch_size=1000000, max_batches=None, db_config=None):
+        """
+            Classify changes for a single datatye/label in smaller batches.
+        """
+
+        with open(f'{FEATURES_DIR}/feature_cols_{dt_label}.pkl', 'rb') as f:
+            feature_cols = pickle.load(f)
+        
+        feature_cols_str = ', '.join(feature_cols)
+
+        if dt_label in ('entity', 'text', 'time', 'quantity', 'globecoordinate_latitude', 'globecoordinate_longitude'):
+            key_cols = BASE_KEY_TYPES.keys()
+        else: # property_replacement
+            key_cols = PROP_REP_KEY_TYPES.keys()
+
+        key_cols_str = ', '.join(key_cols)
+
+        table_name = dt_label
+        label_column = 'label'
+        add_old_new = False
+        
+        if dt_label == 'globecoordinate_latitude':
+            label_column = 'label_latitude'
+            table_name = 'globecoordinate'
+            add_old_new = True
+            old_new_cols = 'latitude_old, latitude_new'
+        elif dt_label == 'globecoordinate_longitude':
+            label_column = 'label_longitude'
+            table_name = 'globecoordinate'
+            add_old_new = True
+            old_new_cols = 'longitude_old, longitude_new'
+
+        print('Creating temp table')
+        cursor = self.conn.cursor()
+
+        if dt_label in ('time', 'quantity', 'text', 'globecoordinate_latitude', 'globecoordinate_longitude', 'entity'):
+                key_cols_temp = ', '.join([f'{col} {col_type}' for col, col_type in BASE_KEY_TYPES.items()])
+        else:
+            key_cols_temp = ', '.join([f'{col} {col_type}' for col, col_type in PROP_REP_KEY_TYPES.items()])
+        
+        cursor.execute(f"CREATE TEMP TABLE temp_predictions_{dt_label} ({key_cols_temp}, predicted_labels TEXT)")
+
+        if db_config:
+            print('Getting changes to classify from DB')
+            num_batches = 0
+
+            sql_runner = SQLRunner(db_config)
+
+            while True:
+
+                if max_batches and num_batches >= max_batches:
+                    print(f'Loaded {max_batches} batches from DB')
+                    break
+
+                time_0 = time.time()
+                query = f"""
+                    SELECT {key_cols_str}, {feature_cols_str}{', ' + old_new_cols if add_old_new else ''}
+                    FROM features_{table_name}{table_prefix}
+                    WHERE {label_column} = ''
+                    LIMIT {batch_size}
+                """
+                df = sql_runner.query_to_df(query)
+                
+                time_1 = time.time()
+                print(f'Finished loading batch {num_batches+1} from DB, took {time_1 - time_0:.2f} seconds')
+                
+                if len(df) == 0:
+                    break
+                
+                # Classify
+                X = df.drop(columns=key_cols) # drop key columns, just keep features
+
+                if add_old_new: # drop the old_new columns, just keep the features
+                    old_new_cols_list = old_new_cols.split(', ')
+                    X = X.drop(columns=old_new_cols_list)
+
+                time_0  = time.time()
+                results = self.classify_changes(df, X, df.index, dt_label)
+                time_1 = time.time()
+                print(f'Finished classifying batch {num_batches+1}, took {time_1 - time_0:.2f} seconds')
+
+                key_cols_list = list(key_cols)
+                results_filtered = results[key_cols_list + ['predicted_labels']]
+
+                buffer = io.StringIO()
+                results_filtered.to_csv(buffer, index=False, header=False, sep=';', quoting=csv.QUOTE_NONE, escapechar='\\')
+                buffer.seek(0)
+
+                print('Load to temp table')
+                start_time = time.time()
+                cursor.copy_expert(f"COPY temp_predictions_{dt_label} FROM STDIN (FORMAT CSV, DELIMITER ';' , QUOTE '\"', ESCAPE '\\')", buffer)
+                elapsed_time = time.time() - start_time
+                print(f'Finished loading to temp table in {elapsed_time:.2f} seconds')
+
+                print('Updating change table')
+                start_time = time.time()
+                # Update labels
+                cursor.execute(f"""
+                    UPDATE features_{table_name}{table_prefix} f
+                    SET {label_column} = tp.predicted_labels
+                    FROM temp_predictions_{dt_label} tp 
+                    WHERE 
+                        {' AND '.join([f'f.{key_col} = tp.{key_col}' if key_col != 'change_target' else f"COALESCE(f.{key_col}, '') = COALESCE(tp.{key_col}, '')" for key_col in key_cols])}
+                """)
+                elapsed_time = time.time() - start_time
+                final_time, unit = get_time_unit(elapsed_time)
+                print(f'Finished updating table in {final_time} {unit}')
+
+                cursor.execute(f"TRUNCATE TABLE temp_predictions_{dt_label}")
+
+                self.conn.commit()
+
+                num_batches += 1
+            
+            print(f'Classified {num_batches} batches from DB for {dt_label}')
+
+        else:
+            print('No DB config provided, cannot classify in batches from DB')
+            return
+            
+
+    # ------------------------------------------------------------------------------------------------
+    # Methods to calculate evaluation metrics for the model + best model selection
+    # ------------------------------------------------------------------------------------------------
+    
     @staticmethod
     def create_data_structure_for_visualization():
 
@@ -594,45 +921,46 @@ class MLClassifier(BaseClassifier):
 
     @staticmethod
     def select_best_classifier(results_dt_label_model):
+        """
+        Selects best classifier based on:
+            - number of classification tasks they have highest F1
+        if multiple models are best in the same number of classification tasks:
+            - the best model is the one that has best F1 avg across all classification tasks
+        """
 
         score_per_model = {}
         df_data = {
             'datatype': [],
             'label': [],
             'best_model': [],
-            'best_f1': [],
-            'best_recall': [],
-            'best_precision': []
+            'best_f1': []
         }
+        
         for datatype in results_dt_label_model:
             for label in results_dt_label_model[datatype]:
-                best_model = None
-                best_f1 = 0
-                best_recall = 0
-                best_precision = 0
+                best_f1 = -1
+                best_models = []
                 for model in results_dt_label_model[datatype][label]:
                     if model not in score_per_model:
                         score_per_model[model] = 0
+                    
                     f1 = results_dt_label_model[datatype][label][model]['f1']
-                    recall = results_dt_label_model[datatype][label][model]['recall']
-                    precision = results_dt_label_model[datatype][label][model]['precision']
+                    
+                    print(f'Model: {model}', f'F1: {f1:.5f}', 'Datatype:', datatype, 'Label:', label)
+                    
                     if f1 > best_f1:
                         best_f1 = f1
-                        best_model = model
-
-                    if recall > best_recall:
-                        best_recall = recall
-                    
-                    if precision > best_precision:
-                        best_precision = precision
+                        best_models = [model] # reset with a new best model
+                    elif f1 == best_f1: # more than 1 model has best f1
+                        best_models.append(model) 
 
                 df_data['datatype'].append(datatype)
                 df_data['label'].append(label)
-                df_data['best_model'].append(best_model)
+                df_data['best_model'].append(', '.join(best_models))
                 df_data['best_f1'].append(best_f1)
-                df_data['best_recall'].append(best_recall)
-                df_data['best_precision'].append(best_precision)
-                score_per_model[best_model] += 1
+                
+                for model in best_models:
+                    score_per_model[model] += 1
 
         df = pd.DataFrame(df_data)
 
@@ -640,7 +968,6 @@ class MLClassifier(BaseClassifier):
         print(f'Saved best model per classification task (according to F1 score) to {TRAINING_RESULTS}/best_model_per_f1_all_tasks.csv')
 
         print('Overall best model (considering only F1 score):')
-
         best_score = 0
         best_model = None
         for model, score in score_per_model.items():
@@ -648,11 +975,9 @@ class MLClassifier(BaseClassifier):
                 best_score = score
                 best_model = model
             print(f'Model: {model}, Score: {score}')
-
-        print(f'Overall best model is {best_model} with score {best_score}/ {sum(score_per_model.values())}')
-
+        
         model_averages = {model: {'f1': [], 'precision': [], 'recall': [], 'accuracy': []} 
-                        for model in ML_MODELS}
+                    for model in ML_MODELS}
 
         for datatype in results_dt_label_model:
             for label in results_dt_label_model[datatype]:
@@ -667,10 +992,10 @@ class MLClassifier(BaseClassifier):
         for model in ML_MODELS:
             summary_stats.append({
                 'Model': model,
-                'Mean F1': np.mean(model_averages[model]['f1']).round(2),
-                'Mean Precision': np.mean(model_averages[model]['precision']).round(2),
-                'Mean Recall': np.mean(model_averages[model]['recall']).round(2),
-                'Mean Accuracy': np.mean(model_averages[model]['accuracy']).round(2)
+                'Mean F1': np.mean(model_averages[model]['f1']),
+                'Mean Precision': np.mean(model_averages[model]['precision']),
+                'Mean Recall': np.mean(model_averages[model]['recall']),
+                'Mean Accuracy': np.mean(model_averages[model]['accuracy'])
             })
 
         df_summary = pd.DataFrame(summary_stats)
@@ -678,175 +1003,22 @@ class MLClassifier(BaseClassifier):
         print("\nModel Performance Summary (across all classification tasks):")
         display(df_summary.to_string(index=False))
 
-        best_model = None
+        best_model_f1 = None
         best_f1 = 0
         for i, stats in enumerate(summary_stats):
             if stats['Mean F1'] > best_f1:
                 best_f1 = stats['Mean F1']
-                best_model = stats['Model']
+                best_model_f1 = stats['Model']
         
-        print(f'Model with best F1 across all classification tasks is {best_model} with an avg. F1 of {best_f1}')
+        print(f'Model with best F1 across all classification tasks is {best_model_f1} with an avg. F1 of {best_f1}')
 
         print(f'Saved summary stats to {TRAINING_RESULTS}/summary_all_models.csv')
 
-        with open(f'{TRAINING_INFO_DIR}/training_info_{best_model}.pkl', 'rb') as f:
+        with open(f'{TRAINING_INFO_DIR}/training_info_{best_model_f1}.pkl', 'rb') as f:
             training_info_model = pickle.load(f)
 
         with open(f'{TRAINING_RESULTS}/best_model_training_info.pkl', 'wb') as f:
             pickle.dump(training_info_model, f)
-
-
-    def train_classifier(self):
-        os.makedirs(FEATURES_DIR, exist_ok=True)
-        
-        df_gs = pd.read_csv(f'{GOLD_STANDARD_DIR}/gold_standard.csv')
-
-        datatypes_classes = WD_BASIC_TYPES + ['text', 'entity', PROPERTY_REPLACEMENT_LABEL] 
-        classifiers_rf = dict()
-        classifiers_kn = dict()
-        classifiers_gb = dict()
-        classifiers_xgb = dict()
-
-        
-        scalers = dict()
-        for dt_class in datatypes_classes:
-            print(f"\n{'='*50}")
-            print(f"Training classifier for: {dt_class}")
-            print(f"{'='*50}")
-
-            #############################
-            #   Load or create features
-            #############################
-            if os.path.isfile(f'{FEATURES_DIR}/gs_features_{dt_class}.csv'):
-                df = pd.read_csv(f'{FEATURES_DIR}/gs_features_{dt_class}.csv', index_col=0)
-                with open(f'{FEATURES_DIR}/feature_cols_{dt_class}.pkl', 'rb') as f:
-                    feature_cols = pickle.load(f)
-
-                print('Features already exist, loading from disk.')
-            else:
-                print('Features dont exist, creating.')
-                df = df_gs
-                if dt_class in DATATYPE_INDEPENDENT_CLASSES: # reverted edit, property replacement have their own files
-                    df = pd.read_csv(f'{GOLD_STANDARD_DIR}/{dt_class}.csv')
-
-                # df is already filtered per datatype inside get_features
-                df, feature_cols = self.get_features(dt_class, df)
-                os.makedirs(FEATURES_DIR, exist_ok=True)
-                df.to_csv(f'{FEATURES_DIR}/gs_features_{dt_class}.csv', index=True)
-            
-            if dt_class == PROPERTY_REPLACEMENT_LABEL:
-                # de duplicate by pair_id because the features are the same for all the rows in the group, then I would have duplicated rows
-                df = df.groupby('pair_id', as_index=False).first() # keep only one row per pair_id
-            
-            # Fill NAN/Inf with 0
-            X = df[feature_cols].astype(float).fillna(0) # features
-            X.replace([np.inf, -np.inf], np.nan).fillna(0, inplace=True)
-            
-            # Remove zero-variance features
-            zero_std_cols = X.columns[X.std() == 0]
-
-            if len(zero_std_cols) > 0:
-                X = X.drop(columns=zero_std_cols)
-                print('Removed zero-variance features: ', zero_std_cols.tolist())
-
-            with open(f'{FEATURES_DIR}/feature_cols_{dt_class}.pkl', 'wb') as f:
-                pickle.dump([f for f in feature_cols if f not in zero_std_cols], f) # remove zero-variance features
-            
-            # Scale
-            path_to_scalers = f'{FEATURES_DIR}/scalers.pkl'
-            if os.path.exists(path_to_scalers):
-                with open(path_to_scalers, 'rb') as f:
-                    scalers = pickle.load(f)
-                scaler = scalers[dt_class]
-                X_scaled = scaler.transform(X)
-            else:# else: uses the scaler created in the beggining and it gets saved at the end
-                scaler = StandardScaler()
-                X_scaled = scaler.fit_transform(X)
-                scalers[dt_class] = scaler
-
-            # Split label into binary columns
-            label_binarizer = None
-            if dt_class not in DATATYPE_INDEPENDENT_CLASSES:
-                df['labels_list'] = df['label'].fillna('').str.split(',').apply(lambda x: [l.strip() for l in x])
-        
-                all_labels = [label for labels in df['labels_list'] for label in labels]
-
-                # To do multi-label classification we need 1 column per label
-                label_binarizer = MultiLabelBinarizer()
-                y_binary = label_binarizer.fit_transform(df['labels_list'])
-                
-            else: # for reverted edit, property replacement I only have single labels
-                label_binarizer = LabelBinarizer()
-                df['label'] = df['label'].fillna(f'non_{dt_class}')# fills nan with non_reverted_edit, non_property_replacement, etc.
-                all_labels = df['label'].tolist() 
-                y_binary = label_binarizer.fit_transform(df['label'])
-
-            results_folds_rf, micro_averages_rf = self.perform_kfold_training(X_scaled, y_binary, dt_class, label_binarizer, all_labels, feature_cols, df.index.values, classifier='Random_Forest')
-            results_folds_kn, micro_averages_kn = self.perform_kfold_training(X_scaled, y_binary, dt_class, label_binarizer, all_labels, feature_cols, df.index.values, classifier='KN')
-            results_folds_gb, micro_averages_gb = self.perform_kfold_training(X_scaled, y_binary, dt_class, label_binarizer, all_labels, feature_cols, df.index.values, classifier='Gradient_Boosting')
-            results_folds_xg, micro_averages_xg = self.perform_kfold_training(X_scaled, y_binary, dt_class, label_binarizer, all_labels, feature_cols, df.index.values, classifier='XGBoost')
-
-            classifiers_rf[dt_class] = {
-                'results_folds': results_folds_rf,
-                'micro_averages': micro_averages_rf
-            }
-
-            classifiers_kn[dt_class] = {
-                'results_folds': results_folds_kn,
-                'micro_averages': micro_averages_kn
-            }
-
-            classifiers_gb[dt_class] = {
-                'results_folds': results_folds_gb,
-                'micro_averages': micro_averages_gb
-            }
-
-            classifiers_xgb[dt_class] = {
-                'results_folds': results_folds_xg,
-                'micro_averages': micro_averages_xg
-            }
-
-        models_to_save = {
-            'random_forest': classifiers_rf,
-            'kn': classifiers_kn,
-            'gradient_boosting': classifiers_gb,
-            'xgboost': classifiers_xgb
-        }
-
-        os.makedirs(TRAINING_INFO_DIR, exist_ok=True)
-
-        for model, dict_ in models_to_save.items():
-            if not os.path.isfile(f'{TRAINING_INFO_DIR}/training_info_{model}.pkl'):
-                with open(f'{TRAINING_INFO_DIR}/training_info_{model}.pkl', 'wb') as f:
-                    pickle.dump(dict_, f)
-            else:
-                try:
-                    with open(f'{TRAINING_INFO_DIR}/training_info_{model}.pkl', 'rb') as f:
-                        info = pickle.load(f)
-                except Exception as e:
-                    print(f"Error loading existing training info for {model}: {e}")
-                    raise e
-                
-                for dt_class in dict_.keys():
-                    info[dt_class] = dict_[dt_class]
-                
-                with open(f'{TRAINING_INFO_DIR}/training_info_{model}.pkl', 'wb') as f:
-                    pickle.dump(info, f)
-
-        path_to_scaler = f'{FEATURES_DIR}/scalers.pkl'
-        if not os.path.exists(path_to_scaler):
-            with open(path_to_scaler, 'wb') as f:
-                pickle.dump(scalers, f)
-
-        with open(f'{TRAINING_INFO_DIR}/training_runtimes.pkl', 'wb') as f:
-            pickle.dump(self.runtimes, f)
-
-        for dt_class, runtime_models in self.runtimes.items():
-
-            print(f'# ------ {dt_class.upper()} ------ #')
-            for model, runtime in runtime_models.items():
-                print(f'{model}: {runtime} seconds')
-            print('# ------------------------------ #')
         
     
     def evaluate(self):
@@ -857,207 +1029,6 @@ class MLClassifier(BaseClassifier):
         MLClassifier.select_best_classifier(results_dt_label_model)
     
         return results_dt_label_model
-
-    def run_classification(self, X, X_index, dt_label):
-        """
-            We do ensemble voting with the models from all folds
-            Make all models prdict, average the prob for the classes across all folds, pick the probs that are > 0.5
-            If no prob is > 0.5, take the highest one
-        """
-        with open(f'{FEATURES_DIR}/scalers.pkl', 'rb') as f:
-            scalers = pickle.load(f)
-
-        # scale features with same scalers used during training
-        scaler = scalers[dt_label]
-        X_scaled = scaler.transform(X)
-
-        # load best model
-        with open(f'{TRAINING_RESULTS}/best_model_training_info.pkl', 'rb') as f:
-            training_info_model = pickle.load(f)
-
-        # load results_folds, has the trained model
-        results_folds = training_info_model[dt_label]['results_folds']
-
-        all_predictions = []
-
-        for i, fold_result in enumerate(results_folds):
-            model = fold_result['model']
-            
-            # Get probability predictions for each class
-            # For multi-label, this returns shape (n_samples, n_classes)
-            pred_proba = model.predict_proba(X_scaled)
-            
-            # predict_proba for multi-label returns list of arrays (one per class)
-            # Each element is (n_samples, 2) for [prob_class_0, prob_class_1]
-            # want (n_samples, n_classes) with prob of class being 1
-            
-            if isinstance(pred_proba, list):  # Multi-label case
-                # positive class (index 1) for each label
-                # each p is an array of lists, corresponding to a specific label
-                # when we do p[:, 1] we are getting the prob of class 1 for all examples, for that label
-                # with np.column_stack, we stack them on a column, so we get:
-                # e.g. pred_proba = array([[0.99799539, 0.00200461], [0.99799539, 0.00200461],[0.00441102, 0.99558898]]), array([[0.99322399, 0.00677601],[0.99606133, 0.00393867],[0.01199732, 0.98800268]])
-                # p = array([[0.99799539, 0.00200461], [0.99799539, 0.00200461],[0.00441102, 0.99558898]])
-                # p[:, 1] = [ 0.00200461
-                #             0.00200461
-                #             0.99558898 ]
-                # for the next label, it will be another column
-                pred_proba_positive = np.column_stack([p[:, 1] for p in pred_proba]) 
-            else:  # Single-label case
-                pred_proba_positive = pred_proba
-            
-            # has one array for each fold
-            all_predictions.append(pred_proba_positive)
-
-        # Stack all predictions: shape (n_folds, n_samples, n_classes)
-        all_predictions = np.array(all_predictions)
-
-        # Average across folds: shape (n_samples, n_classes)
-        avg_prediction = np.mean(all_predictions, axis=0)
-
-        # Apply 0.5 threshold for each instance
-        final_labels = (avg_prediction >= 0.5).astype(int)
-
-        # Apply fallback for instances with no labels
-        for i in range(len(final_labels)):
-            if not final_labels[i].any():  # No label assigned
-                highest_idx = np.argmax(avg_prediction[i])
-                final_labels[i, highest_idx] = 1
-
-        # get label binarizer to create column of labels
-        multi_label_binarizer = results_folds[0]['multi_label_binarizer'] # it's the same for all folds
-
-        # get actual label names
-        final_labels_transformed = multi_label_binarizer.inverse_transform(final_labels)
-
-        # create list of labels
-        pred_df = pd.DataFrame({
-            'predicted_labels': [', '.join(labels) if labels else '(none)' for labels in final_labels_transformed]
-        }, index=X_index)
-
-        # join labels list to original data
-        results_df = X.join(pred_df)
-
-        return results_df
-    
-    def classify_in_batches(self, dt_label, table_prefix, batch_size=100000, max_batches=None):
-        """
-            Classify changes for a single datatye/label in smaller batches.
-        """
-        
-        predictions_files = []
-        offset = 0
-
-        with open(f'{FEATURES_DIR}/feature_cols_{dt_label}.pkl', 'wb') as f:
-            feature_cols = pickle.load(f)
-        
-        feature_cols_str = ', '.join(feature_cols)
-
-        if dt_label in ('entity', 'text', 'time', 'quantity', 'globecoordinate'):
-            key_cols = BASE_KEY_TYPES.keys()
-        else: # property_replacement
-            key_cols = PROP_REP_KEY_TYPES.keys()
-
-        key_cols_str = ', '.join(key_cols)
-
-        if self.conn:
-            print('Getting changes to classify from DB')
-            num_batches = 0
-            while True:
-
-                if max_batches and num_batches >= max_batches:
-                    print(f'Loaded {max_batches} batches from DB')
-                    break
-
-                # get data
-                query = f"""
-                    SELECT {key_cols_str}, {feature_cols_str}
-                    FROM sample_features_{dt_label}{table_prefix}
-                    WHERE
-                        (label IS NULL or label = '') 
-                    LIMIT {batch_size} OFFSET {offset}
-                """
-                df = pd.read_sql(query, self.conn)
-                
-                if len(df) == 0:
-                    break
-                
-                # Classify
-                results = self.run_classification(df, df.index, dt_label)
-                
-                # Save to csv for loading with copy
-                os.makedirs(f'{CLASSIFICATION_RESULTS}/{dt_label}{table_prefix}', exist_ok=True)
-                batch_file = f'{CLASSIFICATION_RESULTS}/{dt_label}{table_prefix}/predictions_chunk_{offset//batch_size}.csv'
-                results.to_csv(batch_file, index=False, header=False, sep=';', quoting=csv.QUOTE_NONE, escapechar='\\')
-                predictions_files.append(batch_file)
-                
-                offset += batch_size
-                num_batches += 1
-            
-            print(f'Classified {num_batches} batches from DB for {dt_label}')
-
-        else:
-            print(f'No connection to DB. Checking if there are batches of changes stored in {CHANGES_TO_CLASSIFY}')
-            # get full path
-            os.chdir(CHANGES_TO_CLASSIFY)
-            num_files = 0
-            for file_name in list(glob.glob('*.csv')):
-                df = pd.read_csv(file_name)
-                results = self.run_classification(df, df.index, dt_label)
-                
-                # Save to csv for loading with copy
-                os.makedirs(f'{CLASSIFICATION_RESULTS}/{dt_label}{table_prefix}', exist_ok=True)
-                batch_file = f'{CLASSIFICATION_RESULTS}/{dt_label}{table_prefix}/{file_name}'
-                results.to_csv(batch_file, index=False, header=False, sep=';', quoting=csv.QUOTE_NONE, escapechar='\\')
-                predictions_files.append(batch_file)
-
-                num_files += 1
-
-            print(f'Classified {num_files} files for {dt_label}')
-
-        if len(predictions_files) > 0 and self.conn:
-            # Load all batches into temp table
-            print('Updating DB with predictions')
-
-            print('Creating temp table')
-            cursor = self.conn.cursor()
-
-            if dt_label in ('time', 'quantity', 'text', 'globecoordinate'):
-                key_cols_temp = ', '.join([f'{col} {col_type}' for col, col_type in BASE_KEY_TYPES.items()])
-            else:
-                key_cols_temp = ', '.join([f'{col} {col_type}' for col, col_type in PROP_REP_KEY_TYPES.items()])
-            
-            cursor.execute(f"CREATE TEMP TABLE temp_predictions ({key_cols_temp}, label TEXT)")
-            
-            print('Loading data into temp table')
-            start_time = time.time()
-            for batch_file in predictions_files:
-                with open(batch_file, 'r') as f:
-                    cursor.copy_expert("COPY temp_predictions FROM STDIN (FORMAT CSV, DELIMITER ';')", f)
-                
-                os.remove(batch_file) # remove batch file after it was loaded to temp
-
-            elapsed_time = time.time() - start_time
-            final_time, unit = get_time_unit(elapsed_time)
-            print(f'Finished loading data into temp table, took {final_time} {unit}')
-            
-            print('Updating change table')
-            start_time = time.time()
-            # Update labels
-            cursor.execute(f"""
-                UPDATE sample_features_{dt_label}{table_prefix} f
-                SET label = tp.label
-                FROM temp_predictions tp 
-                WHERE 
-                    {' AND'.join([f'f.{key_col} = tp.{key_col}' if key_col != 'change_target' else f"COALESCE(f.{key_col}, '') = COALESCE(tp.{key_col}, '')" for key_col in key_cols])}
-            """)
-            elapsed_time = time.time() - start_time
-            final_time, unit = get_time_unit(elapsed_time)
-            print(f'Finished updating table in {final_time} {unit}')
-
-            cursor.execute("DROP TABLE temp_predictions")
-
-            self.conn.commit()
 
     def __del__(self):
         if self.conn:

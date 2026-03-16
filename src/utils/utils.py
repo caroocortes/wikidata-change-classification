@@ -194,3 +194,10 @@ def get_time_unit(elapsed_time):
         return elapsed_time / 60, 'minutes'
     else:
         return elapsed_time, 'seconds'
+    
+def print_select_results(results, columns):
+    print(" | ".join(columns))
+    for row in results: # row is a tuple
+        for elem in row:
+            print(elem, end=' | ')
+        print('\n')
