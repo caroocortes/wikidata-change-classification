@@ -6,11 +6,12 @@ import time
 import logging
 from pathlib import Path
 from typing import Dict, Any
+import yaml
 
-from src.classifiers.baseline.baseline_classifier import BaselineClassifier
 from src.classifiers.ml.ml_classifier import MLClassifier
-from src.data.loader import DataLoader
-from src.utils.const import CONFIG_DIR
+from src.classifiers.llm.llm_classifier import LLMClassifier
+from src.sql_runner.sql_runner import SQLRunner
+from src.utils.const import YAML_SETUP_PATH
 
 
 class ClassificationPipeline:
@@ -18,33 +19,26 @@ class ClassificationPipeline:
     Main pipeline for orchestrating classification and evaluation tasks.
     
     This class provides a clean interface for:
-    1. Initializing a classifier (SQL baseline or ML)
-    2. Loading necessary data (full dataset or gold standard)
-    3. Running classification
-    4. Evaluating results
+    1. Initializing a classifier (ML or LLM)
+    2. Running classification
+    3. Evaluating results
 
     """
     
     def __init__(
         self, 
-        classifier_type: str,
-        db_config_path=None
     ):
         """
         Initialize the classification pipeline.
-        
-        Args:
-            classifier_type: Type of classifier to use ('sql', 'baseline', or 'ml')
-            config_path: Path to database configuration file
-            models_config_path: Path to ML models configuration (only needed for ML)
+
         """
-        self.classifier_type = classifier_type.lower()
 
-        self._setup_logging()
+        with open(YAML_SETUP_PATH, 'r') as f:
+            self.set_up = yaml.safe_load(f)
 
-        self.data_loader = None
-        if db_config_path:
-            self.data_loader = DataLoader(db_config_path=db_config_path)
+        self.classifier_type = self.set_up['classification']['classifier_type'].lower()
+
+        self._setup_logging(f'pipeline_{self.classifier_type}.log')
         
         # Initialize classifier
         self._initialize_classifier()
@@ -52,7 +46,7 @@ class ClassificationPipeline:
         self.logger.info(f"Pipeline initialized with {self.classifier_type} classifier")
     
     
-    def _setup_logging(self):
+    def _setup_logging(self, log_file_name='pipeline.log'):
         """Setup logging configuration."""
         log_dir = Path('logs')
         log_dir.mkdir(exist_ok=True)
@@ -61,7 +55,7 @@ class ClassificationPipeline:
             level=logging.INFO,
             format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
             handlers=[
-                logging.FileHandler(log_dir / 'pipeline.log'),
+                logging.FileHandler(log_dir / log_file_name),
                 logging.StreamHandler()
             ]
         )
@@ -71,54 +65,36 @@ class ClassificationPipeline:
         """Initialize the appropriate classifier based on type."""
         if self.classifier_type == 'ml':
             
-            config_path = f'{CONFIG_DIR}/ml_classifier_config.json'
-            conn = None
-            if self.data_loader:
-                conn = self.data_loader.sql_runner.get_connection()
-            self.classifier = MLClassifier(config_path=config_path, classifier_type='ml',connection=conn)
-
-        elif self.classifier_type == 'baseline':
+            config_path = self.set_up['config']['ml_config_path']
+            self.classifier = MLClassifier(config_path=config_path)
             
-            config_path = f'{CONFIG_DIR}/baseline_classifier_config.json'
-            db_config_path = f'{CONFIG_DIR}/db_config.json'
-            self.classifier = BaselineClassifier(db_config_path=db_config_path, config_path=config_path, classifier_type='baseline')
+        elif self.classifier_type == 'llm':
+        
+            config_path = self.set_up['config']['llm_config_path']
+            self.classifier = LLMClassifier(config_path=config_path)
         
         else:
             raise ValueError(
                 f"Unknown classifier type: {self.classifier_type}. "
-                f"Must be 'sql', 'baseline', or 'ml'"
+                f"Must be 'llm', or 'ml'"
             )
     
-    # ========== Data Loading ==========
-    def load_gold_standard(self):
-        """
-        Load gold standard datasets to DB.
-        
-        This loads:
-        - Main gold standard dataset
-        - Reverted edits dataset
-        - Property replacement dataset
-        """
-        start_time = time.time()
-        self.logger.info("Loading gold standard datasets")
-        
-        self.data_loader.load_gold_standard()
-        
-        elapsed = time.time() - start_time
-        self.logger.info(f"Gold standard loaded successfully in {elapsed:.2f}s")
-
-    
     # ========== Classification ==========
-    def run_classification(self, datatype, table_prefix, max_batches=None, db_config=None):
+    def run_classification(self, datatype, table_prefix=None, max_batches=None):
         """
         Run classification on new changes with the trained ML model.
         """
-        start_time = time.time()
-        
-        self.classifier.classify_in_batches(datatype, table_prefix, max_batches=max_batches, db_config=db_config)
-        
-        elapsed = time.time() - start_time
-        self.logger.info(f"Classification completed in {elapsed:.2f}s")
+        if self.classifier_type == 'ml':
+           
+            start_time = time.time()
+
+            db_config_path = self.set_up['config']['database_config_path']
+            self.classifier.classify_changes(datatype, table_prefix, max_batches=max_batches, db_config_path=db_config_path)
+            
+            elapsed = time.time() - start_time
+            self.logger.info(f"Classification completed in {elapsed:.2f}s")
+        else: # llm 
+            self.classifier.classify_changes(datatype)
     
     
     # ========== Training ==========

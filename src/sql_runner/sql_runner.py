@@ -1,8 +1,12 @@
 import pandas as pd
 import psycopg2
+import json
 
 class SQLRunner:
-    def __init__(self, db_config):
+    def __init__(self, db_config_path):
+
+        with open(db_config_path, 'r') as f:
+            db_config = json.load(f)
 
         self.conn = psycopg2.connect(**db_config)
 

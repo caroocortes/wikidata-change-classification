@@ -1,7 +1,10 @@
-database_config_path: src/config/db_config_cluster.json
-
+config:
+  database_config_path: src/config/db_config_cluster.json
+  ml_config_path: src/config/ml_classifier_config.json
+  llm_config_path: src/config/llm_classifier_config.json
+classification:
+  classifier_type: ml
 analysis:
-
   general:
     db_tables:
       reload_data: true
@@ -14,21 +17,17 @@ analysis:
       reload_data: true
     stats_feature_tables:
       reload_data: true
-    created_entities_overtime:
-      reload_data: true
 
   classification_analysis:
     distribution_change_types:
       reload_data: false
-    reverted_edit_analysis:
-      reload_data: false
-    redirects_analysis:
-      reload_data: false
-    general_distribution_of_changes:
+    distribution_of_revisions_value_changes:
       reload_data: false
     entity_types_analysis:
       reload_data: false
     property_analysis:
+      reload_data: false
+    change_types_overtime:
       reload_data: false
 
   

@@ -25,20 +25,18 @@ from src.utils.utils import get_time_unit
 from src.classifiers.base_classifier import BaseClassifier
 from .ml_features import create_text_features, create_entity_features, create_globe_coordinate_features, create_quantity_features, create_time_features, create_reverted_edit_features, create_property_replacement_features
 from src.utils.const import BASE_KEY_TYPES, PROP_REP_KEY_TYPES, CHANGES_TO_CLASSIFY, CLASSIFICATION_RESULTS, TRAINING_RESULTS, MODELS_CONFIG_PATH, WD_ENTITY_TYPES, WD_STRING_TYPES, WD_BASIC_TYPES, ML_MODELS, ML_MODELS_LABELS, DATATYPE_INDEPENDENT_CLASSES, REVERTED_EDIT_LABEL, TRAINING_INFO_DIR, PROPERTY_REPLACEMENT_LABEL, FEATURES_DIR, GOLD_STANDARD_DIR
-from src.database.sql_runner import SQLRunner
+from src.sql_runner.sql_runner import SQLRunner
 
 
 class MLClassifier(BaseClassifier):
-    def __init__(self, config_path: str, classifier_type: str = "ml", connection=None):
-        super().__init__(config_path=config_path, classifier_type=classifier_type)
+    def __init__(self, config_path: str):
+        super().__init__(config_path=config_path)
 
         self.random_state = self.config.get('random_state', 42)
         self.fold_splits = self.config.get('fold_splits', 5)
         self.prob_threshold = self.config.get('prob_threshold', 0.5)
 
         self.runtimes = dict()
-
-        self.conn = connection
 
     # ------------------------------------------------------------------------
     # Methods to train models
@@ -543,7 +541,7 @@ class MLClassifier(BaseClassifier):
     # ------------------------------------------------------------------------
     # Methods to classify changes with the trained models
     # ------------------------------------------------------------------------
-    def classify_changes(self, df, X, X_index, dt_label):
+    def classify_batch(self, df, X, X_index, dt_label):
         """
             We do ensemble voting with the models from all folds
             Make all models prdict, average the prob for the classes across all folds, pick the probs that are > 0.5
@@ -575,6 +573,7 @@ class MLClassifier(BaseClassifier):
             
             # predict_proba for multi-label returns list of arrays (one per class)
             # Each element is (n_samples, 2) for [prob_class_0, prob_class_1]
+            # in my case it would be 1 array per label, so for refinement: [[prob_no_refinement_cahnge_1, prob_refinement_change_1], [prob_no_refinement_change_2, prob_refinement_change_2]]
             # want (n_samples, n_classes) with prob of class being 1
             
             if isinstance(pred_proba, list):  # Multi-label case
@@ -639,11 +638,12 @@ class MLClassifier(BaseClassifier):
 
         return results_df
     
-    def classify_in_batches(self, dt_label, table_prefix, batch_size=1000000, max_batches=None, db_config=None):
+    def classify_changes(self, dt_label, table_prefix, batch_size=1000000, max_batches=None, db_config_path=None):
         """
             Classify changes for a single datatye/label in smaller batches.
         """
-
+        self.logger.info(f'Starting classification for {dt_label} with batch size {batch_size}')
+        
         with open(f'{FEATURES_DIR}/feature_cols_{dt_label}.pkl', 'rb') as f:
             feature_cols = pickle.load(f)
         
@@ -670,22 +670,20 @@ class MLClassifier(BaseClassifier):
             table_name = 'globecoordinate'
             add_old_new = True
             old_new_cols = 'longitude_old, longitude_new'
-
-        print('Creating temp table')
-        cursor = self.conn.cursor()
-
-        if dt_label in ('time', 'quantity', 'text', 'globecoordinate_latitude', 'globecoordinate_longitude', 'entity'):
-                key_cols_temp = ', '.join([f'{col} {col_type}' for col, col_type in BASE_KEY_TYPES.items()])
-        else:
-            key_cols_temp = ', '.join([f'{col} {col_type}' for col, col_type in PROP_REP_KEY_TYPES.items()])
         
-        cursor.execute(f"CREATE TEMP TABLE temp_predictions_{dt_label} ({key_cols_temp}, predicted_labels TEXT)")
+        if db_config_path:
+            sql_runner = SQLRunner(db_config_path)
+            conn = sql_runner.get_connection()
+            cursor = conn.cursor()
 
-        if db_config:
-            print('Getting changes to classify from DB')
+            if dt_label in ('time', 'quantity', 'text', 'globecoordinate_latitude', 'globecoordinate_longitude', 'entity'):
+                    key_cols_temp = ', '.join([f'{col} {col_type}' for col, col_type in BASE_KEY_TYPES.items()])
+            else:
+                key_cols_temp = ', '.join([f'{col} {col_type}' for col, col_type in PROP_REP_KEY_TYPES.items()])
+            
+            cursor.execute(f"CREATE TEMP TABLE temp_predictions_{dt_label} ({key_cols_temp}, predicted_labels TEXT)")
+
             num_batches = 0
-
-            sql_runner = SQLRunner(db_config)
 
             while True:
 
@@ -701,9 +699,10 @@ class MLClassifier(BaseClassifier):
                     LIMIT {batch_size}
                 """
                 df = sql_runner.query_to_df(query)
-                
+                conn.commit() # close read transaction to release locks
+
                 time_1 = time.time()
-                print(f'Finished loading batch {num_batches+1} from DB, took {time_1 - time_0:.2f} seconds')
+                self.logger.info(f'Finished loading batch {num_batches+1} from DB, took {time_1 - time_0:.2f} seconds')
                 
                 if len(df) == 0:
                     break
@@ -716,9 +715,9 @@ class MLClassifier(BaseClassifier):
                     X = X.drop(columns=old_new_cols_list)
 
                 time_0  = time.time()
-                results = self.classify_changes(df, X, df.index, dt_label)
+                results = self.classify_batch(df, X, df.index, dt_label)
                 time_1 = time.time()
-                print(f'Finished classifying batch {num_batches+1}, took {time_1 - time_0:.2f} seconds')
+                self.logger.info(f'Finished classifying batch {num_batches+1}, took {time_1 - time_0:.2f} seconds')
 
                 key_cols_list = list(key_cols)
                 results_filtered = results[key_cols_list + ['predicted_labels']]
@@ -727,13 +726,11 @@ class MLClassifier(BaseClassifier):
                 results_filtered.to_csv(buffer, index=False, header=False, sep=';', quoting=csv.QUOTE_NONE, escapechar='\\')
                 buffer.seek(0)
 
-                print('Load to temp table')
                 start_time = time.time()
                 cursor.copy_expert(f"COPY temp_predictions_{dt_label} FROM STDIN (FORMAT CSV, DELIMITER ';' , QUOTE '\"', ESCAPE '\\')", buffer)
                 elapsed_time = time.time() - start_time
-                print(f'Finished loading to temp table in {elapsed_time:.2f} seconds')
+                self.logger.info(f'Finished loading to temp table in {elapsed_time:.2f} seconds')
 
-                print('Updating change table')
                 start_time = time.time()
                 # Update labels
                 cursor.execute(f"""
@@ -745,15 +742,15 @@ class MLClassifier(BaseClassifier):
                 """)
                 elapsed_time = time.time() - start_time
                 final_time, unit = get_time_unit(elapsed_time)
-                print(f'Finished updating table in {final_time} {unit}')
+                self.logger.info(f'Finished updating table in {final_time} {unit}')
 
                 cursor.execute(f"TRUNCATE TABLE temp_predictions_{dt_label}")
 
-                self.conn.commit()
+                conn.commit()
 
                 num_batches += 1
             
-            print(f'Classified {num_batches} batches from DB for {dt_label}')
+            self.logger.info(f'Classified {num_batches} batches from DB for {dt_label}')
 
         else:
             print('No DB config provided, cannot classify in batches from DB')
@@ -1029,7 +1026,3 @@ class MLClassifier(BaseClassifier):
         MLClassifier.select_best_classifier(results_dt_label_model)
     
         return results_dt_label_model
-
-    def __del__(self):
-        if self.conn:
-            self.conn.close()

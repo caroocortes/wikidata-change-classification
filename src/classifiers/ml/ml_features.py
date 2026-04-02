@@ -163,11 +163,6 @@ def extract_text_features(df, old_col, new_col, mask=None):
     df_string['structure_similarity'] = 1 - abs(df_string['token_count_old'] - df_string['token_count_new']) / \
                                      np.maximum(df_string['token_count_old'], df_string['token_count_new'])
 
-    # for rewording 
-    df_string['high_token_overlap'] = (
-        (df_string['token_overlap'] > 0.8) & # high overlap of words
-        (df_string['old'] != df_string['new']) # still different
-    ).astype(int)
 
     if 'label' not in old_col: # remove for entity
     
@@ -546,19 +541,36 @@ def create_time_features(df, feature_cols):
             if year1 != year2:
                 return 1
         elif option == 'month':
-            is_reformatting = (month1 == 1 and day1 == 1 and day2 == 0 and month2 == 0) or  \
+            # 1. goes from 01-01 to 00-00
+            # 2. goes from XX-01 to XX-00 with XX that can be 01
+            # 3. goes from 01-00 to 00-00
+            is_reformatting = ((month1 == 1 and day1 == 1 and day2 == 0 and month2 == 0) or  \
                             (month1 > 0 and month2 > 0 and month1 == month2 and day1 == 1 and day2 == 0) or \
-                            (month1 == 1 and month2 == 0 and day1 == 0 and day2 == 0)
-            is_refinement = (month1 == 0 and month2 > 0 and day2 == 0) or (month1 == 1 and day1 == 1 and month2 > 1 and (day2 > 1 or day2 == 0) and year1 == year2)
-            is_unrefinement = (month2 == 0 and month1 > 0)
+                            (month1 == 1 and month2 == 0 and day1 == 0 and day2 == 0)) and year1 == year2
+            
+            # 1. just month added
+            # 2. goes from 01-01 to MM-00 or MM-DD
+            # 3. goes from 00-00 to MM-DD
+            is_refinement = ((month1 == 0 and month2 > 0 and day2 == 0) or \
+                            (month1 == 1 and day1 == 1 and month2 > 1 and (day2 > 1 or day2 == 0)) or \
+                            (month1 == 0 and month2 > 0 and day1 == 0 and day2 > 0)) and year1 == year2
+            # goes from MM-00 (month1) to 00-00 (month2)
+            is_unrefinement = (month2 == 0 and month1 > 0) and year1 == year2
             if month1 != month2 and not is_reformatting and not is_refinement and not is_unrefinement:
                 return 1
         elif option == 'day':
-            is_reformatting = (month1 == 1 and day1 == 1 and day2 == 0 and month2 == 0) or  \
+            # 1. goes from 01-01 to 00-00
+            # 2. goes from XX-01 to XX-00
+            # 3. goes from 01-00 to 00-00
+            is_reformatting = ((month1 == 1 and day1 == 1 and day2 == 0 and month2 == 0) or  \
                             (month1 > 0 and month2 > 0 and month1 == month2 and day1 == 1 and day2 == 0) or \
-                            (month1 == 1 and month2 == 0 and day1 == 0 and day2 == 0)
-            is_refinement = (day1 == 0 and day2 > 0) or (day1 == 1 and day2 > 1 and month1 == 1 and month2 > 1 and year1 == year2)
-            is_unrefinement = (day2 == 0 and day1 > 0)
+                            (month1 == 1 and month2 == 0 and day1 == 0 and day2 == 0)) and year1 == year2
+            # 1. XX-00 to XX-DD with XX that can be 01/00
+            # 2. goes from 01-01 to MM-DD
+            is_refinement = ((day1 == 0 and day2 > 0) or \
+                            (day1 == 1 and day2 > 1 and month1 == 1 and month2 > 1)) and year1 == year2
+            # goes from XX-00 to XX-DD 
+            is_unrefinement = (day2 == 0 and day1 > 0) and year1 == year2
             if day1 != day2 and not is_reformatting and not is_refinement and not is_unrefinement:
                 return 1
         return 0
@@ -601,7 +613,7 @@ def create_time_features(df, feature_cols):
 ##############################
 def calc_precision_change(row, new_col, old_col, datatype='quantity', part=None):
     # returns 1 if only precision (decimal places) changed, 0 otherwise
-    if datatype == 'globecoordinate' or datatype == 'globecoordinate':
+    if datatype == 'globecoordinate':
         if '{' in row[old_col] and '{' in row[new_col]:
             old = json.loads(row[old_col]).get(part, None)
             new = json.loads(row[new_col]).get(part, None)
@@ -749,7 +761,7 @@ def same_float_value(row, old_col, new_col, datatype='quantity', part=None):
         else:
             return 0
     try:
-        return 1 if Decimal(old_value) == Decimal(new_value) else 0
+        return 1 if float(old_value) == float(new_value) else 0
     except:
         return 0
 

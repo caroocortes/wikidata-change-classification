@@ -189,26 +189,26 @@ if __name__ == "__main__":
     with open(YAML_SETUP_PATH, 'r') as f:
         set_up = yaml.safe_load(f)
 
-    with open(set_up['database_config_path'], 'r') as f:
+    with open(set_up['config']['database_config_path'], 'r') as f:
         db_config = json.load(f)
 
     # reload_data = set_up['analysis']['general']['db_tables']['reload_data']
-    # table_stats(db_config['db_params'], reload_data)
+    # table_stats(db_config, reload_data)
 
     # reload_data = set_up['analysis']['general']['stats_sa_ao']['reload_data']
-    # stats_sa_ao(db_config['db_params'], reload_data)
+    # stats_sa_ao(db_config, reload_data)
 
     # reload_data = set_up['analysis']['general']['stats_used_tables']['reload_data']
-    # stats_used_tables(db_config['db_params'], reload_data)
+    # stats_used_tables(db_config, reload_data)
 
 
 
 
     # reload_data = set_up['analysis']['general']['entity_stats']['reload_data']
     # filter_big_entities = set_up['analysis']['general']['entity_stats']['filter_big_entities']
-    # entity_stats(db_config['db_params'], reload_data, filter_big_entities)
+    # entity_stats(db_config, reload_data, filter_big_entities)
 
     # reload_data = set_up['analysis']['general']['stats_feature_tables']['reload_data']
-    # stats_feature_tables(db_config['db_params'], reload_data)
+    # stats_feature_tables(db_config, reload_data)
 
-    created_entities_over_time(db_config['db_params'], set_up['analysis']['general']['created_entities_overtime']['reload_data'])
+    created_entities_over_time(db_config, set_up['analysis']['general']['created_entities_overtime']['reload_data'])

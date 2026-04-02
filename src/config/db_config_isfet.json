@@ -1,9 +1,0 @@
-{
-    "db_params": {
-        "host": "172.16.64.23",
-        "port": 5432,
-        "dbname": "wikidata_change_classification",
-        "user": "postgres",
-        "password": "postgres"
-    }
-}

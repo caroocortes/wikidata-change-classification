@@ -1,5 +1,8 @@
 import csv
+import logging
+from pathlib import Path
 from .const import BASIC_CHANGE_LABELS, REVERTED_EDIT_LABEL, PROPERTY_REPLACEMENT_LABEL
+
 def preprocess_csv(input_file, output_file, delimiter=';'):
     """
     Read CSV with mixed quotes and write with standardized double quotes
@@ -93,93 +96,6 @@ def copy_from_csv(conn, csv_file_path, table_name, columns, primary_keys, delimi
         print(f"Table {table_name} already exists. Skipping loading data.")
 
     return exists
-
-    
-def update_column_types(conn, table_existence):
-    print('Going to update column types', flush=True)
-
-    if not table_existence['reverted_edit']:
-        with conn.cursor() as cur:
-            cur.execute("""
-                ALTER TABLE reverted_edit
-                ALTER COLUMN revision_id TYPE BIGINT USING revision_id::BIGINT,
-                ALTER COLUMN entity_id TYPE BIGINT USING entity_id::INT,
-                ALTER COLUMN timestamp TYPE TIMESTAMP WITH TIME ZONE USING timestamp::TIMESTAMP WITH TIME ZONE,
-                ALTER COLUMN property_id TYPE INT USING property_id::INT,
-                ALTER COLUMN old_value TYPE JSONB USING old_value::JSONB,
-                ALTER COLUMN new_value TYPE JSONB USING new_value::JSONB;
-                        
-                UPDATE reverted_edit
-                SET change_target = COALESCE(change_target, '');
-            """)
-        conn.commit()
-
-    if not table_existence['property_replacement']:
-        with conn.cursor() as cur:
-            cur.execute("""
-                UPDATE property_replacement
-                SET old_value = '""'
-                WHERE old_value = '';
-
-                ALTER TABLE property_replacement
-                ALTER COLUMN revision_id TYPE BIGINT USING revision_id::BIGINT,
-                ALTER COLUMN entity_id TYPE BIGINT USING entity_id::INT,
-                ALTER COLUMN timestamp TYPE TIMESTAMP WITH TIME ZONE USING timestamp::TIMESTAMP WITH TIME ZONE,
-                ALTER COLUMN property_id TYPE INT USING property_id::INT,
-                ALTER COLUMN old_value TYPE JSONB USING old_value::JSONB,
-                ALTER COLUMN new_value TYPE JSONB USING new_value::JSONB;
-                        
-                UPDATE property_replacement
-                SET change_target = COALESCE(change_target, '');
-            """)
-        conn.commit()
-
-    if not table_existence['gold_standard']:
-        with conn.cursor() as cur:
-            cur.execute("""
-                ALTER TABLE gold_standard
-                ALTER COLUMN revision_id TYPE BIGINT USING revision_id::BIGINT,
-                ALTER COLUMN entity_id TYPE BIGINT USING entity_id::INT,
-                ALTER COLUMN property_id TYPE INT USING property_id::INT,
-                ALTER COLUMN old_value TYPE JSONB USING old_value::JSONB,
-                ALTER COLUMN new_value TYPE JSONB USING new_value::JSONB;
-                        
-                UPDATE gold_standard
-                SET change_target = COALESCE(change_target, '');
-            """)
-        conn.commit()
-
-    if table_existence['gold_standard'] or table_existence['reverted_edit'] or table_existence['property_replacement']:
-        print('Updated column types', flush=True)
-
-def drop_predicted_columns(conn):
-    print("Dropping predicted columns", flush=True)
-    query_gs = 'ALTER TABLE gold_standard'
-    query_cols = "DROP COLUMN IF EXISTS {},"
-    for label in BASIC_CHANGE_LABELS:
-       if 'formatting' in label:
-           label = label.replace('-', '_')
-       query_gs = query_gs + f" {query_cols.format(label + '_predicted')}"
-
-    query_gs = query_gs.rstrip(',') + ';'
-
-    query_rv = f"""
-        ALTER TABLE reverted_edit
-        DROP COLUMN IF EXISTS {REVERTED_EDIT_LABEL}_predicted;
-    """
-
-    query_pr = f"""
-        ALTER TABLE property_replacement
-        DROP COLUMN IF EXISTS {PROPERTY_REPLACEMENT_LABEL}_predicted;
-    """
-
-    with conn.cursor() as cur:
-        cur.execute(query_gs)
-        cur.execute(query_rv)
-        cur.execute(query_pr)
-    conn.commit()
-
-    print("Dropped predicted columns", flush=True)
 
 def get_time_unit(elapsed_time):
     """
