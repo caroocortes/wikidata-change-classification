@@ -56,9 +56,9 @@ wikidata-change-analysis/
 └── logs/                           # Runtime logs
 ```
 
----
+--- 
 
-## Classification
+## Reproduce results
 
 We provide the trained models and features in [Wikidata Change Classification Trained Models and Features](https://doi.org/10.5281/zenodo.19788996).
 
@@ -66,6 +66,12 @@ To re-use this resources, unzip files and put in the following folders:
 - features.zip -> src/classifiers/ml/features/
 - training_info_all_classifiers.zip -> src/classifiers/ml/training_info/
 - trained_model.zip -> src/results/training/
+
+Follow the steps below for classification or traininig.
+
+---
+
+## Classification
 
 **Note:** The classification uses the training_info.pkl stored in *src/results/training/*. By default, this folder stores the best model (the one with highest F1 across all tasks). To use another model, copy its *training_info.pkl* from *src/classifiers/ml/training_info/* to *src/results/training/* and rename with *best_model_training_info.pkl*.
 
@@ -87,11 +93,11 @@ Example: If you want to use random forest, then *src/classifiers/ml/training_inf
 2. Set *classifier_type* to *ml* in `set_up.yml` and the respective step (train, evaluate, classify) to be ran in *classification_ml*. For the classify step, set `table_prefix` (can be one of: '_less', '_sa', '_ao', '' - See entity filters in change extraction tool) and `max_batches` (maximum number of batches of changes to classify) accordingly.
 3. Run `python3 main.py`.
 
-*Note 1:* For training, the transitive closure cache must be created beforehand. Refer to [WiDiff](https://anonymous.4open.science/r/WiDiff-DC11/README.md) for transitive closure extraction and cache creation (Section *Transitive closure cachce creation* in README). The `transitive_closure_cache.pkl` file should be inside the directory `/transitive_closures`. *Note:* The .csv files for the cache creation are provided in [WiDiff: Wikidata Entity Labels, Descriptions and Alias, Types (P31 and P279), and Transitive Closures (June 2025)](https://doi.org/10.5281/zenodo.19771721).
-
-*Note 2:* For classification of all changes in the DB (step *classification_ml - classify: true* in `set_up.yml`), change extraction should have been performed with *feature_extraction: true*, and the script `compute_remaining_features.py` should have been ran. Refer to [WiDiff](https://anonymous.4open.science/r/WiDiff-DC11/README.md) for this last step (Section *Compute remaining features* in README).
+*Note:* For classification of all changes in the DB (step *classification_ml - classify: true* in `set_up.yml`), change extraction should have been performed with *feature_extraction: true*, and the script `compute_remaining_features.py` should have been ran. Refer to [WiDiff](https://anonymous.4open.science/r/WiDiff-DC11/README.md) for this last step (Section *Compute remaining features* in README).
 
 #### Training
+
+For training, the transitive closure cache must be created beforehand. Refer to [WiDiff](https://anonymous.4open.science/r/WiDiff-DC11/README.md) for transitive closure extraction and cache creation (Section *Transitive closure cachce creation* in README). The `transitive_closure_cache.pkl` file should be inside the directory `/transitive_closures`. *Note:* The .csv files for the cache creation are provided in [WiDiff: Wikidata Entity Labels, Descriptions and Alias, Types (P31 and P279), and Transitive Closures (June 2025)](https://doi.org/10.5281/zenodo.19771721).
 
 **Configuration**
 Training is performed doing 5-fold cross validation. The number of folds can be changed in *config/ml_classifier_config.json*
