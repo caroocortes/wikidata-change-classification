@@ -100,6 +100,7 @@ Example: If you want to use random forest, then *src/classifiers/ml/training_inf
 For training, the transitive closure cache must be created beforehand. Refer to [WiDiff](https://anonymous.4open.science/r/WiDiff-DC11/README.md) for transitive closure extraction and cache creation (Section *Transitive closure cachce creation* in README). The `transitive_closure_cache.pkl` file should be inside the directory `/transitive_closures`. *Note:* The .csv files for the cache creation are provided in [WiDiff: Wikidata Entity Labels, Descriptions and Alias, Types (P31 and P279), and Transitive Closures (June 2025)](https://doi.org/10.5281/zenodo.19771721).
 
 **Configuration**
+
 Training is performed doing 5-fold cross validation. The number of folds can be changed in *config/ml_classifier_config.json*
 
 Additionally, since we want to guarantee that every change has a label assigned and multi-label classifiers return probabilities for each class, we assign all labels to a change where prob >= 0.5, If no probability reaches this threshold, we take the one with the maximum probability. This threshold can be modified in *config/ml_classifier_config.json*.
@@ -107,6 +108,7 @@ Additionally, since we want to guarantee that every change has a label assigned 
 Finally, we use *random_state = 42* so results are reproducible (also set in *config/ml_classifier_config.json*).
 
 **Output**
+
 Training outputs *training_info_<model_name>.pkl* files with the following structure:
 
 `````bash
