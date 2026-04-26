@@ -3,7 +3,7 @@
 This repository contains code and artifacts for classifying Wikidata value changes across multiple datatypes (e.g., `quantity`, `time`, `text`, `entity`, and `globecoordinate`).  
 It includes LLM baseline classification, ML-based classification, and analysis scripts.
 
-This tool assumes a database populated by [WiDiff](https://anonymous.4open.science/r/WiDiff-DC11/README.md) exists, and that change extraction was performed with *feature_extraction: true* (see `set_up.yml` of **WiDiff**).
+This tool assumes a database populated by [WiDiff](https://anonymous.4open.science/r/WiDiff-DC11/README.md) exists, and that change extraction was performed with *feature_extraction: true* and *re_interpretation: true* (see `set_up.yml` of **WiDiff**).
 
 ---
 
