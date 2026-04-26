@@ -210,5 +210,3 @@ if __name__ == "__main__":
 
     # reload_data = set_up['analysis']['general']['stats_feature_tables']['reload_data']
     # stats_feature_tables(db_config, reload_data)
-
-    created_entities_over_time(db_config, set_up['analysis']['general']['created_entities_overtime']['reload_data'])

@@ -21,93 +21,93 @@ CREATE TABLE IF NOT EXISTS change_type_distribution (
 -- entity
 INSERT INTO change_type_distribution (source, label, count_reverted, count_non_reverted)
 WITH label_split AS (
-    SELECT is_reverted, unnest(string_to_array(label, ', ')) AS individual_label
+    SELECT is_reverted, reversion, unnest(string_to_array(label, ', ')) AS individual_label
     FROM features_entity WHERE label IS NOT NULL AND label != '' AND old_value_label != '' AND new_value_label != ''
 )
 SELECT 'entity', individual_label,
     COUNT(*) FILTER (WHERE is_reverted = 1),
-    COUNT(*) FILTER (WHERE is_reverted = 0)
+    COUNT(*) FILTER (WHERE is_reverted = 0 and reversion = 0)
 FROM label_split GROUP BY individual_label;
 
 --- text
 INSERT INTO change_type_distribution (source, label, count_reverted, count_non_reverted)
 WITH label_split AS (
-    SELECT is_reverted, unnest(string_to_array(label, ', ')) AS individual_label
+    SELECT is_reverted, reversion, unnest(string_to_array(label, ', ')) AS individual_label
     FROM features_text WHERE label IS NOT NULL AND label != ''
 )
 SELECT 'text', individual_label,
     COUNT(*) FILTER (WHERE is_reverted = 1),
-    COUNT(*) FILTER (WHERE is_reverted = 0)
+    COUNT(*) FILTER (WHERE is_reverted = 0 and reversion = 0)
 FROM label_split GROUP BY individual_label;
 
 --- quantity
 INSERT INTO change_type_distribution (source, label, count_reverted, count_non_reverted)
 WITH label_split AS (
-    SELECT is_reverted, unnest(string_to_array(label, ', ')) AS individual_label
+    SELECT is_reverted, reversion, unnest(string_to_array(label, ', ')) AS individual_label
     FROM features_quantity WHERE label IS NOT NULL AND label != ''
 )
 SELECT 'quantity', individual_label,
     COUNT(*) FILTER (WHERE is_reverted = 1),
-    COUNT(*) FILTER (WHERE is_reverted = 0)
+    COUNT(*) FILTER (WHERE is_reverted = 0 and reversion = 0)
 FROM label_split GROUP BY individual_label;
 
 --- globe latitude
 INSERT INTO change_type_distribution (source, label, count_reverted, count_non_reverted)
 WITH label_split AS (
-    SELECT is_reverted, unnest(string_to_array(label_latitude, ', ')) AS individual_label
+    SELECT is_reverted, reversion, unnest(string_to_array(label_latitude, ', ')) AS individual_label
     FROM features_globecoordinate WHERE label_latitude IS NOT NULL AND label_latitude != ''
 )
 SELECT 'globecoordinate_latitude', individual_label,
     COUNT(*) FILTER (WHERE is_reverted = 1),
-    COUNT(*) FILTER (WHERE is_reverted = 0)
+    COUNT(*) FILTER (WHERE is_reverted = 0 and reversion = 0)
 FROM label_split GROUP BY individual_label;
 
 -- globe longitude
 INSERT INTO change_type_distribution (source, label, count_reverted, count_non_reverted)
 WITH label_split AS (
-    SELECT is_reverted, unnest(string_to_array(label_longitude, ', ')) AS individual_label
+    SELECT is_reverted, reversion, unnest(string_to_array(label_longitude, ', ')) AS individual_label
     FROM features_globecoordinate WHERE label_longitude IS NOT NULL AND label_longitude != ''
 )
 SELECT 'globecoordinate_longitude', individual_label,
     COUNT(*) FILTER (WHERE is_reverted = 1),
-    COUNT(*) FILTER (WHERE is_reverted = 0)
+    COUNT(*) FILTER (WHERE is_reverted = 0 and reversion = 0)
 FROM label_split GROUP BY individual_label;
 
 
 --- time
 INSERT INTO change_type_distribution (source, label, count_reverted, count_non_reverted)
 WITH label_split AS (
-    SELECT is_reverted, unnest(string_to_array(label, ', ')) AS individual_label
+    SELECT is_reverted, reversion, unnest(string_to_array(label, ', ')) AS individual_label
     FROM features_time WHERE label IS NOT NULL AND label != ''
 )
 SELECT 'time', individual_label,
     COUNT(*) FILTER (WHERE is_reverted = 1),
-    COUNT(*) FILTER (WHERE is_reverted = 0)
+    COUNT(*) FILTER (WHERE is_reverted = 0 and reversion = 0)
 FROM label_split GROUP BY individual_label;
 
 -- Insert value_change derived labels
 INSERT INTO change_type_distribution (source, label, count_reverted, count_non_reverted)
-SELECT 'value_change', 'statement_insertion', COUNT(*) FILTER(WHERE is_reverted = 1), COUNT(*) FILTER(WHERE is_reverted = 0)
+SELECT 'value_change', 'statement_insertion', COUNT(*) FILTER(WHERE is_reverted = 1), COUNT(*) FILTER (WHERE is_reverted = 0 and reversion = 0)
 FROM value_change
 WHERE (label='statement_insertion' or label='value_insertion') AND change_target='';
 
 INSERT INTO change_type_distribution (source, label, count_reverted, count_non_reverted)
-SELECT 'value_change', 'statement_deletion', COUNT(*) FILTER(WHERE is_reverted = 1), COUNT(*) FILTER(WHERE is_reverted = 0)
+SELECT 'value_change', 'statement_deletion', COUNT(*) FILTER(WHERE is_reverted = 1), COUNT(*) FILTER (WHERE is_reverted = 0 and reversion = 0)
 FROM value_change
 WHERE (label='statement_deletion' or label='value_deletion') AND change_target='';
 
 INSERT INTO change_type_distribution (source, label, count_reverted, count_non_reverted)
-SELECT 'value_change', 'property_value_update', COUNT(*) FILTER(WHERE is_reverted = 1), COUNT(*) FILTER(WHERE is_reverted = 0)
+SELECT 'value_change', 'property_value_update', COUNT(*) FILTER(WHERE is_reverted = 1), COUNT(*) FILTER (WHERE is_reverted = 0 and reversion = 0)
 FROM value_change
 WHERE (label='value_update') AND change_target='';
 
 INSERT INTO change_type_distribution (source, label, count_reverted, count_non_reverted)
-SELECT 'value_change', 'soft_insertion', COUNT(*) FILTER(WHERE is_reverted = 1), COUNT(*) FILTER(WHERE is_reverted = 0)
+SELECT 'value_change', 'soft_insertion', COUNT(*) FILTER(WHERE is_reverted = 1), COUNT(*) FILTER (WHERE is_reverted = 0 and reversion = 0)
 FROM value_change
 WHERE (label='soft_insertion') AND change_target='rank';
 
 INSERT INTO change_type_distribution (source, label, count_reverted, count_non_reverted)
-SELECT 'value_change', 'soft_deletion', COUNT(*) FILTER(WHERE is_reverted = 1), COUNT(*) FILTER(WHERE is_reverted = 0)
+SELECT 'value_change', 'soft_deletion', COUNT(*) FILTER(WHERE is_reverted = 1), COUNT(*) FILTER (WHERE is_reverted = 0 and reversion = 0)
 FROM value_change
 WHERE (label='soft_deletion') AND change_target='rank';
 

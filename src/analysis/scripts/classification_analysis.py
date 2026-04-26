@@ -1,4 +1,5 @@
 import sys
+from turtle import width
 import pandas as pd
 import matplotlib.pyplot as plt
 import json
@@ -100,8 +101,6 @@ def soft_deletion_vs_shard_deletion(db_config, reload_data):
     plt.savefig(f'{RESULTS_DIR}/figures/soft_vs_hard_deletions.png', dpi=300, bbox_inches='tight')
     plt.show()
 
-
-
 def reverted_edits(db_config, reload_data):
     sql_query = """
         create table reverted_edits_user_type_overtime as
@@ -146,286 +145,11 @@ def reverted_edits(db_config, reload_data):
 
     plt.savefig(f'{RESULTS_DIR_FIGURES}/reverted_edits_user_type_overtime.png', dpi=300, bbox_inches='tight')
 
-  
 
 def save_fig(fig, path):
     plt.tight_layout()
     fig.savefig(path, dpi=300, bbox_inches='tight', pad_inches=0)
     plt.close(fig)
-
-
-# Descriptive analysis of dataset
-def property_stats(db_config, reload_data):
-
-    query_name = 'stats_properties'
-    if reload_data:
-        
-        sql_runner = SQLRunner(db_config)
-        with open(f'{SQL_SCRIPT_DIR}/{query_name}.sql', 'r') as f:
-            sql_query = f.read()
-        sql_runner.execute_query(sql_query)
-        df = sql_runner.query_to_df('SELECT * FROM stats_properties;')
-        df.to_csv(f'{RESULTS_DIR}/stats_properties.csv', index=False)
-        del sql_runner
-    else:
-        if os.path.exists(f'{RESULTS_DIR}/stats_properties.csv'):
-            df = pd.read_csv(f'{RESULTS_DIR}/stats_properties.csv')
-        else:
-            sql_runner = SQLRunner(db_config)
-            df = sql_runner.query_to_df('SELECT * FROM stats_properties;')
-            if len(df) == 0:
-                print(f'No results found for stats_properties. Please run with reload_data=True (see setup.yml) to execute the query and save results.')
-                return
-            df.to_csv(f'{RESULTS_DIR}/stats_properties.csv', index=False)
-
-            del sql_runner
-
-    top_filter = 10
-
-    df['property_label'] = df['property_label'].fillna('Label Unknown')
-    df['display_label'] = df['property_label'].apply(
-        lambda x: '\n'.join(textwrap.wrap(str(x), width=40))
-    )
-    df_filtered = df[df['count_entities'] >= 100].copy()
-
-    df_filtered['pct_create'] = (df_filtered['count_create'] / df_filtered['count_changes']) * 100
-    df_filtered['pct_delete'] = (df_filtered['count_delete'] / df_filtered['count_changes']) * 100
-    df_filtered['pct_update'] = (df_filtered['count_update'] / df_filtered['count_changes']) * 100
-
-    mpl.rcParams.update({
-        'font.size': 4,
-        'axes.titlesize': 4,
-        'axes.labelsize': 4,
-        'xtick.labelsize': 4,
-        'ytick.labelsize': 4,
-        'legend.fontsize': 4,
-        'figure.dpi': 300,
-        'axes.spines.top': False,
-        'axes.spines.right': False,
-        'axes.grid': False,
-    })
-
-    # --- Plot 1: Top properties most used ---
-    df_filtered.sort_values('count_entities', ascending=True, inplace=True)  # ascending for barh so top is at top
-    df_top = df_filtered.tail(top_filter) # get tail
-
-    fig, ax = plt.subplots(figsize=(2.5, 2))
-    bars = ax.barh(df_top['display_label'], df_top['count_entities'], color=clear_color_palette[2], edgecolor='none')
-    ax.bar_label(bars, labels=[format_number(c) for c in df_top['count_entities']], fontsize=4)
-    ax.set_xlabel('Number of Entities')
-    # ax.set_title(f'Top {top_filter} Entity Types by Number of Enities')
-    ax.xaxis.set_major_formatter(mpl.ticker.FuncFormatter(lambda x, _: format_number(x)))
-    save_fig(fig, f'{RESULTS_DIR}/figures/property_count_{top_filter}.png')
-
-    # --- Plot 2: Type of change stacked bar ---
-    df_top = df_filtered.nlargest(top_filter, 'count_entities')
-    x = np.arange(len(df_top))
-
-    fig, ax = plt.subplots(figsize=(2.5, 2))
-    ax.bar(x, df_top['pct_create'], label='Create', color=clear_color_palette[0], edgecolor='none')
-    ax.bar(x, df_top['pct_delete'], bottom=df_top['pct_create'], label='Delete', color=clear_color_palette[1], edgecolor='none')
-    ax.bar(x, df_top['pct_update'], bottom=df_top['pct_create'] + df_top['pct_delete'], label='Update', color=clear_color_palette[2], edgecolor='none')
-    ax.set_xticks(x)
-    ax.set_xticklabels(df_top['display_label'], rotation=45, ha='right', fontsize=4)
-    ax.set_ylabel('Percentage of changes')
-    fig.legend(loc='outside lower right', markerscale=0.2, handlelength=1)
-    save_fig(fig, f'{RESULTS_DIR}/figures/property_top_{top_filter}_change_type.png')
-
-
-def entity_type_stats(db_config, reload_data):
-
-    query_name = 'stats_entity_type'
-    if reload_data:
-        
-        sql_runner = SQLRunner(db_config)
-        with open(f'{SQL_SCRIPT_DIR}/{query_name}.sql', 'r') as f:
-            sql_query = f.read()
-        sql_runner.execute_query(sql_query)
-        df = sql_runner.query_to_df('SELECT * FROM entity_type_stats;')
-        df.to_csv(f'{RESULTS_DIR}/entity_type_stats.csv', index=False)
-        del sql_runner
-    else:
-        if os.path.exists(f'{RESULTS_DIR}/entity_type_stats.csv'):
-            df = pd.read_csv(f'{RESULTS_DIR}/entity_type_stats.csv')
-        else:
-            sql_runner = SQLRunner(db_config)
-            df = sql_runner.query_to_df('SELECT * FROM entity_type_stats;')
-            if len(df) == 0:
-                print(f'No results found for entity_type_stats. Please run with reload_data=True (see setup.yml) to execute the query and save results.')
-                return
-            df.to_csv(f'{RESULTS_DIR}/entity_type_stats.csv', index=False)
-
-            del sql_runner
-
-    top_filter = 10
-
-    # sandbox entities
-    entities_to_filter = ['Q16943273', 'Q17339402', 'Q4115189', 'Q13406268', 'Q15397819', 'Q112795079']
-    df = df[~df['individual_type'].isin(entities_to_filter)].copy()
-
-    # count is count of entities
-    df.sort_values(by='count', ascending=False, inplace=True)
-    df['entity_type_label'] = df['entity_type_label'].fillna('Label Unknown')
-
-    label_counts = df['entity_type_label'].value_counts()
-    df['display_label'] = df.apply(
-        lambda row: f"{row['entity_type_label']} ({row['individual_type']})" 
-        if label_counts[row['entity_type_label']] > 1 
-        else row['entity_type_label'], 
-        axis=1
-    )
-
-    df['display_label'] = df['display_label'].apply(
-        lambda x: '\n'.join(textwrap.wrap(str(x), width=25))
-    )
-
-    df['total_edits_by_users'] = df['num_bot_edits'] + df['num_anonymous_edits'] + df['registered_user_edits']
-    df['pct_bot'] = (df['num_bot_edits'] / df['total_edits_by_users']) * 100
-    df['pct_anonymous'] = (df['num_anonymous_edits'] / df['total_edits_by_users']) * 100
-    df['pct_registered'] = (df['registered_user_edits'] / df['total_edits_by_users']) * 100
-
-    mpl.rcParams.update({
-        'font.size': 4,
-        'axes.titlesize': 4,
-        'axes.labelsize': 4,
-        'xtick.labelsize': 4,
-        'ytick.labelsize': 4,
-        'legend.fontsize': 4,
-        'figure.dpi': 300,
-        'axes.spines.top': False,
-        'axes.spines.right': False,
-        'axes.grid': False,
-    })
-
-    # --- Plot 1: Top entity types by count ---
-    df.sort_values('count', ascending=True, inplace=True)  # ascending for barh so top is at top
-    df_top = df.tail(top_filter)
-
-    fig, ax = plt.subplots(figsize=(2.5, 2))
-    bars = ax.barh(df_top['display_label'], df_top['count'], color=clear_color_palette[2], edgecolor='none')
-    ax.bar_label(bars, labels=[format_number(c) for c in df_top['count']], fontsize=4)
-    ax.set_xlabel('Number of Entities')
-    # ax.set_title(f'Top {top_filter} Entity Types by Number of Enities')
-    ax.xaxis.set_major_formatter(mpl.ticker.FuncFormatter(lambda x, _: format_number(x)))
-    save_fig(fig, f'{RESULTS_DIR}/figures/entity_type_count_{top_filter}.png')
-
-    # --- Plot 2: Top by value changes ---
-    
-    df.sort_values('num_value_changes', ascending=True, inplace=True)
-    df_top = df.tail(top_filter)
-
-    fig, ax = plt.subplots(figsize=(2.5, 2))
-    
-    bars = ax.barh(df_top['display_label'], df_top['num_value_changes'], color=clear_color_palette[0], edgecolor='none')
-    ax.bar_label(bars, labels=[format_number(c) for c in df_top['num_value_changes']])
-    ax.set_xlabel('Number of Value Changes')
-    # ax.set_title(f'Top {top_filter} Entity Types by Value Changes')
-    ax.xaxis.set_major_formatter(mpl.ticker.FuncFormatter(lambda x, _: format_number(x)))
-
-    save_fig(fig, f'{RESULTS_DIR}/figures/entity_type_top_{top_filter}_value_changes.png')
-
-    fig, ax = plt.subplots(figsize=(2.5, 2))
-    
-    df['value_changes_per_entity'] = df['num_value_changes'] / df['count'] # normalize by count so I don't just get the
-    df_filtered = df[df['count'] >= 100].copy() # filter out the ones with very low count, if not the ratio is skewed
-    df_filtered.sort_values('value_changes_per_entity', ascending=True, inplace=True)
-    df_top = df_filtered.tail(top_filter)
-
-    bars = ax.barh(df_top['display_label'], df_top['value_changes_per_entity'], color=clear_color_palette[1], edgecolor='none')
-    ax.bar_label(bars, labels=[format_number(c) for c in df_top['value_changes_per_entity']])
-    ax.set_xlabel('Number of Value Changes per Entity of the Type')
-    # ax.set_title(f'Top {top_filter} Most Edited Entity Types')
-    ax.xaxis.set_major_formatter(mpl.ticker.FuncFormatter(lambda x, _: format_number(x)))
-
-    plt.subplots_adjust(wspace=0.5)
-
-    save_fig(fig, f'{RESULTS_DIR}/figures/entity_type_top_{top_filter}_most_edited.png')
-
-    # --- Plot 4: User type stacked bar ---
-    df_top = df_filtered.nlargest(top_filter, 'value_changes_per_entity')
-    x = np.arange(len(df_top))
-
-    fig, ax = plt.subplots(figsize=(2.5, 2))
-    ax.bar(x, df_top['pct_bot'], label='Bot', color=clear_color_palette[0], edgecolor='none')
-    ax.bar(x, df_top['pct_anonymous'], bottom=df_top['pct_bot'], label='Anonymous', color=clear_color_palette[1], edgecolor='none')
-    ax.bar(x, df_top['pct_registered'], bottom=df_top['pct_bot'] + df_top['pct_anonymous'], label='Registered', color=clear_color_palette[2], edgecolor='none')
-    ax.set_xticks(x)
-    ax.set_xticklabels(df_top['display_label'], rotation=45, ha='right', fontsize=4)
-    ax.set_ylabel('Percentage of Edits (%)')
-    # ax.set_title(f'Edit Distribution by User Type (Top {top_filter} Most Edited Entity Types)')
-    # ax.legend(loc='outside lower center', markerscale=0.2, handlelength=1)
-    save_fig(fig, f'{RESULTS_DIR}/figures/entity_type_top_{top_filter}_user_type.png')
-
-
-def distribution_of_revisions_value_changes(db_config, reload_data):
-
-    if reload_data:
-        df = sql_runner.query_to_df('SELECT entity_id, num_revisions, num_value_changes FROM entity_stats;')
-        df.to_csv(f'{RESULTS_DIR}/entity_stats.csv', index=False)
-        del sql_runner
-    else:
-        if os.path.exists(f'{RESULTS_DIR}/entity_stats.csv'):
-            df = pd.read_csv(f'{RESULTS_DIR}/entity_stats.csv')
-        else:
-            sql_runner = SQLRunner(db_config)
-            df = sql_runner.query_to_df('SELECT entity_id, num_revisions, num_value_changes FROM entity_stats;')
-            if len(df) == 0:
-                print(f'No results found for entity_stats. Please run with reload_data=True (see setup.yml) to execute the query and save results.')
-                return
-            df.to_csv(f'{RESULTS_DIR}/entity_stats.csv', index=False)
-            del sql_runner
-
-    mpl.rcParams.update({
-        'font.size': 3,
-        'axes.titlesize': 4,
-        'axes.labelsize': 4,
-        'xtick.labelsize': 4,
-        'ytick.labelsize': 4,
-        'legend.fontsize': 4,
-        'figure.dpi': 300,
-        'axes.spines.top': False,
-        'axes.spines.right': False,
-    })
-
-    fig, axes = plt.subplots(1, 2, figsize=(2, 2))
-    df = df[df['entity_id'] != '4115189']
-
-    # 2. Distribution of revisions per entity (histogram)
-    axes[0].hist(df['num_revisions'], bins=20, color=clear_color_palette[0], edgecolor='none')
-    axes[0].set_yscale('log')
-    # axes[0].set_title('Distribution of Revisions per Entity')
-    axes[0].set_xlabel('Number of Revisions')
-    axes[0].set_ylabel('Number of Entities (log)')
-
-    # 4. Distribution of value changes per entity
-    axes[1].hist(df['num_value_changes'], bins=20, color=clear_color_palette[1], edgecolor='none')
-    axes[1].set_yscale('log')
-    # axes[1].set_title('Distribution of Value Changes per Entity')
-    axes[1].set_xlabel('Number of Value Changes')
-    axes[1].set_ylabel('Number of Entities (log)')
-
-    plt.tight_layout()
-    fig.savefig(f'{RESULTS_DIR}/figures/distribution_revisions_value_changes.png', dpi=300, bbox_inches='tight')
-    plt.close(fig)
-    
-    max_revisions = df['num_revisions'].max()
-    max_value_changes = df['num_value_changes'].max()
-    min_revisions = df['num_revisions'].min()
-    min_value_changes = df['num_value_changes'].min()
-    avg_value_changes = df['num_value_changes'].mean()
-    avg_num_revisions = df['num_revisions'].mean()
-
-    entity_with_most_revisions = df.loc[df['num_revisions'].idxmax()]['entity_id']
-    entity_with_most_value_changes = df.loc[df['num_value_changes'].idxmax()]['entity_id']
-
-    print('================ STATISTICS ================')
-    print(f'Max number of revisions for an entity: {max_revisions}, Min number of revisions for an entity: {min_revisions}')
-    print(f'Max number of value changes for an entity: {max_value_changes}, Min number of value changes for an entity: {min_value_changes}')
-    print(f'Entity with most revisions: {entity_with_most_revisions} ({max_revisions} revisions)')
-    print(f'Entity with most value changes: {entity_with_most_value_changes} ({max_value_changes} value changes)')
-    
-    print(f'Average number of value changes per entity: {avg_value_changes:.2f}')
-    print(f'Average number of revisions per entity: {avg_num_revisions}')
 
 
 def distribution_change_types(db_config, reload_data):
@@ -477,13 +201,14 @@ def distribution_change_types(db_config, reload_data):
 
     df_grouped['reverted_percentage'] = (df_grouped['count_reverted'] / df_grouped['total']) * 100
 
-    create_order = ['reference_insertion', 'qualifier_insertion', 'statement_insertion', 'soft_insertion']
-    update_order = ['link_change', 're_formatting', 'refinement', 'unrefinement', 'property_value_update', 'textual_change']
-    delete_order = ['reference_deletion', 'qualifier_deletion', 'statement_deletion', 'soft_deletion']
-    all_order = create_order + update_order + delete_order
-    df_grouped = df_grouped.set_index('label').loc[all_order].reset_index()
+    # create_order = ['reference_insertion', 'qualifier_insertion', 'statement_insertion', 'soft_insertion']
+    # update_order = ['link_change', 're_formatting', 'refinement', 'unrefinement', 'property_value_update', 'textual_change']
+    # delete_order = ['reference_deletion', 'qualifier_deletion', 'statement_deletion', 'soft_deletion']
+    # all_order = create_order + update_order + delete_order
 
-    fig, ax = plt.subplots(figsize=(4.8,4))
+    df_grouped = df_grouped.set_index('label').sort_values('total').reset_index()
+
+    fig, ax = plt.subplots(figsize=(4.5,6))
     width = 0.4
     y = range(len(df_grouped['label']))
     labels = []
@@ -491,55 +216,79 @@ def distribution_change_types(db_config, reload_data):
         if label == 'property_value_update':
             labels.append('value update')
         else:
-            labels.append(label.replace('_', ' '))
+            labels.append(label.replace('_', '\n'))
         
-    x_pos_rev = [i + width if 'qualifier' not in label and 'reference' not in label else i for i, label in enumerate(labels)]
-    x_pos_non_rev = [i for i in y]
+    # x_pos_rev = [i + width if 'qualifier' not in label and 'reference' not in label else i for i, label in enumerate(labels)]
+    x_pos_non_rev = [i/2 +0.1 for i in y]
     
-    bars1 = ax.barh(x_pos_rev, df_grouped['count_reverted'], width, color=clear_color_palette[0], label='Reverted')
-    bars2 = ax.barh(x_pos_non_rev, df_grouped['count_non_reverted'], width, color=clear_color_palette[1], label='Non-Reverted')
-    ax.bar_label(bars1, labels=[f'{p:.2f}%' for p in df_grouped['reverted_percentage']], padding=0.1, fontsize=5)
-    ax.bar_label(bars2, labels=[format_number(p) for p in df_grouped['count_non_reverted']], padding=0.1, fontsize=5)
-    ax.set_xscale('log')
-    ax.set_yticks(y)
+    bars2 = ax.barh(x_pos_non_rev, df_grouped['total'], height=width, color=clear_color_palette[1])
+    for bar, p, r in zip(bars2, df_grouped['total'], df_grouped['reverted_percentage']):
+        # label = f'{format_number(p)} ({r:.1f}%)' if r > 0 else f'{format_number(p)}'
+        label = f'{format_number(p)} ({r:.1f}%)'
+        bar_width = bar.get_width()
+        bar_y = bar.get_y() + bar.get_height() / 2
+        threshold = 10000000
+        if bar_width > threshold:
+            ax.text(bar_width*0.3, bar_y, label,
+                    ha='center', va='center', fontsize=9, color='black')
+        else:
+            ax.text(bar_width * 1.05, bar_y, label,
+                    ha='left', va='center', fontsize=9, color='black')
 
-    ax.set_yticklabels(labels, fontsize=6)
-    ax.tick_params(axis='x', labelsize=6) # font size of x-axis labels
-    ax.set_xlabel('Number of Changes (log scale)', fontsize=6)
-    fig.legend(loc='outside lower left', markerscale=0.1, handlelength=1, fontsize=6)
+    ax.set_xscale('log')
+    ax.set_yticks(x_pos_non_rev)
+    ax.set_ylim(-0.2, x_pos_non_rev[-1] +0.3)
+    ax.set_yticklabels(labels, fontsize=9)
+    ax.tick_params(axis='x', labelsize=9) # font size of x-axis labels
+    ax.set_xlabel('Number of Changes (log scale)', fontsize=9)
+    # fig.legend(loc='outside lower left', markerscale=0.1, handlelength=1, fontsize=6)
     
     plt.tight_layout()
     plt.savefig(f'{RESULTS_DIR}/figures/distribution_change_types_reverted.png', dpi=500, pad_inches=0)
     plt.show()
 
-    datatypes = ['text', 'entity', 'quantity', 'time', 'globecoordinate_latitude', 'globecoordinate_longitude']
+    # -----------------------------------------------------
+    # change types per datatypes with reverted edit percentage
+    # -----------------------------------------------------
+
+    df['source'] = df['source'].replace({
+        'globecoordinate_latitude': 'globecoordinate',
+        'globecoordinate_longitude': 'globecoordinate'
+    })
+    
+    datatypes = ['globecoordinate', 'quantity', 'time', 'text', 'entity']
     df_filt = df[df['source'].isin(datatypes)]
 
     df_filt_grouped = df_filt.groupby(['source', 'label']).agg({
         'count_reverted': 'sum',
-        'count_non_reverted': 'sum'
+        'count_non_reverted': 'sum',
+        'total': 'sum'
     }).reset_index()
+
+    df_filt_grouped['reverted_percentage'] = (df_filt_grouped['count_reverted'] / df_filt_grouped['total']) * 100
     
     df_filt_grouped['label'] = df_filt_grouped['label'].str.replace('property_value_update', 'value_update')
     labels_unique = df_filt_grouped['label'].unique()
     label_color = {label.replace('_', ' '): clear_color_palette[i] for i, label in enumerate(labels_unique)}
 
-    
     datatype_n_labels = {}
     for datatype in datatypes:
         df_source = df_filt_grouped[df_filt_grouped['source'] == datatype]
         datatype_n_labels[datatype] = df_source['label'].nunique()
     
     # start of bars
+    width_bars = 0.14
+
     datatype_x_start = {}
     x_cursor = 0
     for datatype in datatypes:
-        datatype_x_start[datatype] = x_cursor/3
+        datatype_x_start[datatype] = x_cursor/5
         x_cursor += datatype_n_labels[datatype]
 
-    fig, ax = plt.subplots(figsize=(18, 6))
-    width_bars = 0.25
+    fig, ax = plt.subplots(figsize=(5, 5)) # width, height
     group_centers = []
+    x_positions = []
+    all_bars = []
     for s_idx, source in enumerate(datatypes):
         df_source = df_filt_grouped[df_filt_grouped['source'] == source]
         x_start = datatype_x_start[source]
@@ -550,65 +299,77 @@ def distribution_change_types(db_config, reload_data):
             if row.empty:
                 continue
             
-            x_pos = x_start + l_idx/3
+            x_pos = x_start + l_idx/6
+            x_positions.append(x_pos)
             color = label_color[label.replace('_', ' ')]
             
-            non_rev = row['count_non_reverted'].values[0]
-            rev = row['count_reverted'].values[0]
+            total = row['total'].values[0]
             
-            bars_nrv = ax.bar(x_pos, non_rev, color=color, edgecolor='black', alpha=0.5, label=f'{label} (non-rev)' if s_idx == 0 else "", width=width_bars)
-            bars_rev = ax.bar(x_pos, rev, bottom=non_rev, color=color, edgecolor='black', alpha=1.0, label=f'{label}' if s_idx == 0 else "", width=width_bars)
-            
-            # ax.bar_label(bars_nrv, labels=row['count_non_reverted'], label_type='center', fontsize=5, color='black')
-            # ax.bar_label(bars_rev, labels=row['count_reverted'], label_type='center', fontsize=5, color='black', fontweight='bold')
+            bars_total = ax.barh(x_pos, total, color=color, edgecolor='black', alpha=0.5, label=f'{label}' if s_idx == 0 else "", height=width_bars)
+            all_bars.append((bars_total[0], total, row['reverted_percentage'].values[0]))
 
-            total = rev + non_rev
-            pct = (rev * 100 / total) if total > 0 else 0
-            ax.text(x_pos, total * 1.05, f'{pct:.1f}%', ha='center', va='bottom', fontsize=10, color='black')
+    for bar, p, r in all_bars:
+        label = f'{format_number(p)} ({r:.1f}%)' if r > 0 else f'{format_number(p)}'
+        bar_width = bar.get_width()
+        bar_y = bar.get_y() + bar.get_height() / 2
+        threshold = 1000000
+        if bar_width > threshold:
+            ax.text(bar_width*0.3, bar_y, label,
+                    ha='center', va='center', fontsize=10, color='black')
+        else:
+            ax.text(bar_width * 1.05, bar_y, label,
+                    ha='left', va='center', fontsize=10, color='black')
+
+    ax.set_xscale('log')
+    ax.set_yticks(x_positions)
     
+    # center of each group to put the datatype label
     group_centers = []
     for dt in datatypes:
         if datatype_n_labels[dt] % 2 == 0:
-            group_centers.append(datatype_x_start[dt] + datatype_n_labels[dt]/8)
+            group_centers.append(datatype_x_start[dt] + datatype_n_labels[dt]/14)
         else:
-            group_centers.append(datatype_x_start[dt] + (datatype_n_labels[dt]+1)/8)
+            group_centers.append(datatype_x_start[dt] + (datatype_n_labels[dt]+1)/14)
 
-    ax.set_xticks(group_centers)
-    ax.set_xticklabels([s.replace('_', ' ') for s in datatypes], fontsize=12)
+    ax.set_yticks(group_centers)
+    ax.set_yticklabels([d.replace('_', ' ') if d != 'globecoordinate' else 'globe\ncoordinate' for d in datatypes], fontsize=9, multialignment='center')
 
     # Vertical separators between datatype groups
     for i, datatype in enumerate(datatypes[1:], 1):
         prev_datatype = datatypes[i - 1]
         
         # last bar of previous group
-        last_bar_prev = datatype_x_start[prev_datatype] + (datatype_n_labels[prev_datatype] - 1) / 3
+        last_bar_prev = datatype_x_start[prev_datatype] + (datatype_n_labels[prev_datatype] - 1) / 6
         # first bar of current group
         first_bar_curr = datatype_x_start[datatype]
         
         midpoint = (last_bar_prev + first_bar_curr) / 2
-        ax.axvline(x=midpoint, color='black', linestyle='--', linewidth=1)
+        ax.axhline(y=midpoint, color='black', linestyle='--', linewidth=1)
 
-    ax.set_yscale('log')
-    ax.set_xlim(-0.2, x_cursor/3-0.16)
-    # ax.set_xlabel('Datatype', fontsize=12)
-    ax.set_ylabel('Number of Changes (log scale)', fontsize=12)
-    # ax.set_title('Reverted vs Non-Reverted Changes by Datatype and Label', fontsize=14, fontweight='bold')
+    ax.set_xscale('log')
+    ax.set_ylim(-0.2, x_cursor/5-0.1)
+    ax.set_xlabel('Number of Changes (log scale)', fontsize=9)
 
     # Legend: one entry per label, dark=reverted, light=non-reverted
     legend_elements = [Patch(facecolor=label_color[l.replace('_', ' ')], edgecolor='black', label=l.replace('_', ' ')) for l in labels_unique]
-    legend_elements += [
-        Patch(facecolor='white', edgecolor='black', alpha=0.5, label='Light = non-reverted'),
-        Patch(facecolor='gray', edgecolor='black', label='Dark = reverted'),
-    ]
-    ax.legend(handles=legend_elements, loc='upper right')
+    # legend_elements += [
+    #     Patch(facecolor='white', edgecolor='black', alpha=0.5, label='light (non-reverted)'),
+    #     Patch(facecolor='gray', edgecolor='black', label='dark (reverted)'),
+    # ]
+    fig.legend(handles=legend_elements, ncol=3, loc='outside lower center', fontsize=9, markerscale=0.08, handlelength=1, bbox_to_anchor=(0.53, -0.06))
 
     plt.tight_layout()
-    plt.savefig(f'{RESULTS_DIR}/figures/distribution_change_types_per_datatype.png', dpi=300, bbox_inches='tight', pad_inches=0)
+    plt.savefig(f'{RESULTS_DIR}/figures/distribution_change_types_per_datatype.png', dpi=200, bbox_inches='tight', pad_inches=0)
     plt.show()
 
     # -----------------------------------------------------
     # change types per user (without the reverted edit)
     # -----------------------------------------------------
+
+    df_ut['datatype'] = df_ut['datatype'].replace({
+        'globecoordinate_latitude': 'globecoordinate',
+        'globecoordinate_longitude': 'globecoordinate'
+    })
 
     df_ut_grouped = df_ut.groupby(['datatype', 'label', 'user_type']).agg({
         'total': 'sum'
@@ -630,13 +391,12 @@ def distribution_change_types(db_config, reload_data):
 
     datatype_x_start = {}
     x_cursor = 0
-    padding = 0.25
     for datatype in datatypes:
-        datatype_x_start[datatype] = x_cursor/3
+        datatype_x_start[datatype] = x_cursor/5
         x_cursor += datatype_n_labels[datatype]
 
-    fig, ax = plt.subplots(figsize=(18, 6))
-    width_bars = 0.25
+    fig, ax = plt.subplots(figsize=(7, 7))
+    width_bars = 0.12
 
     for d_idx, datatype in enumerate(datatypes): # datatype
         df_source = df_ut_grouped[df_ut_grouped['datatype'] == datatype]
@@ -648,7 +408,7 @@ def distribution_change_types(db_config, reload_data):
             if df_label.empty:
                 continue
             
-            x_pos = x_start + l_idx/3
+            x_pos = x_start + l_idx/6
             color = label_color[label.replace('_', ' ')]
             bottom = 0
 
@@ -660,14 +420,14 @@ def distribution_change_types(db_config, reload_data):
                 pct = row['pct'].values[0]
                 total = row['total'].values[0]
 
-                ax.bar(x_pos, pct, bottom=bottom, color=color, edgecolor='black',
+                ax.barh(x_pos, pct, left=bottom, color=color, edgecolor='black',
                     alpha=user_type_alpha[user_type],
-                    label=f'{label} - {user_type}' if d_idx == 0 else "", width=width_bars)
+                    label=f'{label} - {user_type}' if d_idx == 0 else "", height=width_bars)
 
-                if pct > 5:
-                    value = format_number(int(total)) if total >= 1000 else int(total)
-                    ax.text(x_pos, bottom + pct / 2, f'{value}', 
-                            ha='center', va='center', fontsize=10, color='black')
+                # if pct > 5:
+                #     value = format_number(int(total)) if total >= 1000 else int(total)
+                #     ax.text(bottom + pct / 2, x_pos, f'{value}', 
+                #             ha='center', va='center', fontsize=8, color='black')
                 
                 bottom += pct
 
@@ -678,38 +438,37 @@ def distribution_change_types(db_config, reload_data):
     group_centers = []
     for dt in datatypes:
         if datatype_n_labels[dt] % 2 == 0:
-            group_centers.append(datatype_x_start[dt] + datatype_n_labels[dt]/8)
+            group_centers.append(datatype_x_start[dt] + datatype_n_labels[dt]/14)
         else:
-            group_centers.append(datatype_x_start[dt] + (datatype_n_labels[dt]+1)/8)
-    ax.set_xticks(group_centers)
-    ax.set_xticklabels([d.replace('_', ' ') for d in datatypes], fontsize=12)
+            group_centers.append(datatype_x_start[dt] + (datatype_n_labels[dt]+1)/14)
+    ax.set_yticks(group_centers)
+    ax.set_yticklabels([d.replace('_', ' ') if d != 'globecoordinate' else f'globe\ncoordinate' for d in datatypes], fontsize=13, multialignment='center')
     
     # dash lines to separate the datatypes
     for i, datatype in enumerate(datatypes[1:], 1):
         prev_datatype = datatypes[i - 1]
         
         # last bar of previous group
-        last_bar_prev = datatype_x_start[prev_datatype] + (datatype_n_labels[prev_datatype] - 1) / 3
+        last_bar_prev = datatype_x_start[prev_datatype] + (datatype_n_labels[prev_datatype] - 1) / 6
         # first bar of current group
         first_bar_curr = datatype_x_start[datatype]
         
         midpoint = (last_bar_prev + first_bar_curr) / 2
-        ax.axvline(x=midpoint, color='black', linestyle='--', linewidth=1)
+        ax.axhline(y=midpoint, color='black', linestyle='--', linewidth=1)
 
-    # ax.set_yscale('log')
     # ax.set_xlabel('Datatype', fontsize=12)
-    ax.set_xlim(-0.2, x_cursor/3 -0.16)
-    ax.set_ylabel('Percentage of Changes', fontsize=12)
+    ax.set_ylim(-0.2, x_cursor/5-0.1)
+    ax.set_xlabel('Percentage of Changes', fontsize=13)
     # ax.set_title('Total Changes by Datatype, Label and User', fontsize=14, fontweight='bold')
 
     # Legend: color = label, alpha = user type
     legend_elements = [Patch(facecolor=label_color[l.replace('_', ' ')], edgecolor='black', label=l.replace('_', ' ')) for l in labels_unique]
     legend_elements += [Patch(facecolor='gray', edgecolor='black', alpha=user_type_alpha[ut], label=ut) for ut in user_types_unique]
     # ax.legend()
-    fig.legend(handles=legend_elements, loc='outside upper right')
+    fig.legend(handles=legend_elements,  ncol=len(legend_elements)//2 -1, loc='outside lower center',  bbox_to_anchor=(0.55, -0.12), fontsize=13, markerscale=0.08, handlelength=1)
 
     plt.tight_layout()
-    plt.savefig(f'{RESULTS_DIR}/figures/distribution_change_types_per_usertype.png', dpi=300, bbox_inches='tight', pad_inches=0)
+    plt.savefig(f'{RESULTS_DIR}/figures/distribution_change_types_per_usertype.png', dpi=600, bbox_inches='tight', pad_inches=0)
     plt.show()
 
 def change_types_overtime(db_config, reload_data):
@@ -798,74 +557,38 @@ def change_types_overtime(db_config, reload_data):
 
 def prop_reverts_overtime(db_config, reload_data):
     query_name = 'prop_reverts_overtime'
-    if os.path.exists(f'{RESULTS_DIR}/{query_name}.csv'):
-        df = pd.read_csv(f'{RESULTS_DIR}/{query_name}.csv')
+    if reload_data:
+        sql_runner = SQLRunner(db_config)
+        with open(f'{SQL_SCRIPT_DIR}/{query_name}.sql', 'r') as f:
+            sql_query = f.read()
+        sql_runner.execute_query(sql_query)
+        df = sql_runner.query_to_df('SELECT * FROM property_time_until_reversion;')
+        df.to_csv(f'{RESULTS_DIR}/{query_name}.csv', index=False)
+        del sql_runner
     else:
-        print(f'No results found for {query_name}.')
-        return
+        if os.path.exists(f'{RESULTS_DIR}/{query_name}.csv'):
+            df = pd.read_csv(f'{RESULTS_DIR}/{query_name}.csv')
+        else: 
+            print('Re-run the analysis with reload_data=True to execute the query and save results.')
 
-    # drop 2025 since it's partial
-    df = df[df['edit_year'] != 2025].copy()
     
     # remove properties with < 10 reverts
-    df = df[df['reversion_count'] >= 10].copy()
+    df = df[df['num_reverted_edits'] >= 10].copy()
 
-    df['edit_year'] = df['edit_year'].astype(int)
-    df['median_hours'] = pd.to_numeric(df['median_hours'], errors='coerce')
-    df = df.dropna(subset=['median_hours'])
-    
-    df = df[df['median_hours'] > 0].copy() # because of log scale
+    print('Removed properties with less than 10 reverts, remaining properties:', len(df))
 
-    fig, ax = plt.subplots(figsize=(14, 6))
+    df['avg_day_until_reversion'] = df['avg_day_until_reversion'].astype(int).fillna(0)
 
-    years = sorted(df['edit_year'].unique())
-    data_per_year = [np.log10(df[df['edit_year'] == y]['median_hours'].values) for y in years] # log scale because of the wide ranges
+    df_grouped = df.groupby('avg_day_until_reversion').size().reset_index(name='num_properties')
 
-    parts = ax.violinplot(
-        data_per_year,
-        positions=range(len(years)),
-        showmedians=True,
-        showextrema=True,
-    )
-
-    for pc in parts['bodies']:
-        pc.set_facecolor('#378ADD')
-        pc.set_alpha(0.6)
-    parts['cmedians'].set_color('#185FA5')
-    parts['cmedians'].set_linewidth(2)
-    parts['cmaxes'].set_color('#888')
-    parts['cmins'].set_color('#888')
-    parts['cbars'].set_color('#888')
-
-    # x axis — years
-    ax.set_xticks(range(len(years)))
-    ax.set_xticklabels(years, rotation=45, fontsize=9)
-
-    # y axis — convert log10 back to hours
-    log_ticks = [-1, 0, 1, 2, 3, 4, 5]  # 0.1h, 1h, 10h, 100h, 1000h, 10000h, 100000h
-    ax.set_yticks(log_ticks)
-    ax.set_yticklabels([f'{10**t:.0f}h' if t >= 0 else f'{10**t:.1f}h' for t in log_ticks], fontsize=9)
-
-    # 2nd y axis with days for readability
-    ax2 = ax.twinx()
-    ax2.set_ylim(ax.get_ylim())
-    ax2.set_yticks(log_ticks)
-    ax2.set_yticklabels([f'{10**t/24:.1f}d' if 10**t >= 24 else '' for t in log_ticks], fontsize=9)
-
-    ax.set_xlabel("Year", fontsize=10)
-    ax.set_ylabel("Median hours to reversion (log scale)", fontsize=10)
-    ax2.set_ylabel("Days", fontsize=10)
-    ax.set_title("Distribution of Median Reversion Times Across Properties", fontsize=11)
-
-    # Annotate n properties per year
-    for i, y in enumerate(years):
-        n = df[df['edit_year'] == y]['property_id'].nunique()
-        ax.text(i, ax.get_ylim()[0] - 0.15, f'n={n}', ha='center', fontsize=7, color='gray')
-
+    fig, ax = plt.subplots(figsize=(4, 3))
+    bars = ax.bar(df_grouped['avg_day_until_reversion'], df_grouped['num_properties'], color=clear_color_palette[0], edgecolor='none')
+    # ax.bar_label(bars, labels=[str(c) for c in df_grouped['num_properties']], fontsize=5)
+    ax.set_xlabel('Average days until reversion')
+    ax.set_ylabel('Number of properties')
     plt.tight_layout()
-    plt.savefig(f'{RESULTS_DIR}/figures/reversion_time_violin.png', dpi=300, bbox_inches='tight')
+    plt.savefig(f'{RESULTS_DIR}/figures/prop_reverts_overtime.png', dpi=450, bbox_inches='tight')
     plt.show()
-
 
 if __name__ == "__main__":
     with open(YAML_SETUP_PATH, 'r') as f:
@@ -874,26 +597,22 @@ if __name__ == "__main__":
     with open(set_up['config']['database_config_path'], 'r') as f:
         db_config = json.load(f)
     
-    reload_data = set_up['analysis']['classification_analysis']['distribution_change_types']['reload_data']
-    distribution_change_types(db_config, reload_data)
+    distribution_change_types_setup = set_up['analysis']['distribution_change_types']
+    if distribution_change_types_setup['execute']:
+        distribution_change_types(db_config, distribution_change_types_setup['reload_data'])
 
-    # reload_data = set_up['analysis']['classification_analysis']['change_types_overtime']['reload_data']
-    # change_types_overtime(db_config, reload_data)
+    change_types_overtime_setup = set_up['analysis']['change_types_overtime']
+    if change_types_overtime_setup['execute']:
+        change_types_overtime(db_config, change_types_overtime_setup['reload_data'])
 
-    # reload_data = set_up['analysis']['classification_analysis']['entity_types_analysis']['reload_data']
-    # entity_type_stats(db_config, reload_data)
+    prop_reverts_overtime_setup = set_up['analysis']['prop_reverts_overtime']
+    if prop_reverts_overtime_setup['execute']:
+        prop_reverts_overtime(db_config, prop_reverts_overtime_setup['reload_data'])
 
-    # -----------------------------------------------------------------
-    # Distribution of revisions and value changes across all entities
-    # -----------------------------------------------------------------
-    # reload_data = set_up['analysis']['classification_analysis']['distribution_of_revisions_value_changes']['reload_data']
-    # distribution_of_revisions_value_changes(db_config, reload_data)
-
-    # -----------------------------------------------------------------
-    # Most used properties + distribution of user types
-    # -----------------------------------------------------------------
-    # reload_data = set_up['analysis']['classification_analysis']['property_analysis']['reload_data']
-    # property_stats(db_config, reload_data=reload_data)
-
-
-    # prop_reverts_overtime(db_config, reload_data=False)
+    reverted_edits_setup = set_up['analysis']['reverted_edits_user_type_overtime']
+    if reverted_edits_setup['execute']:
+        reverted_edits(db_config, reverted_edits_setup['reload_data'])
+    
+    soft_deletion_vs_shard_deletion_setup = set_up['analysis']['soft_deletion_vs_shard_deletion']
+    if soft_deletion_vs_shard_deletion_setup['execute']:
+        soft_deletion_vs_shard_deletion(db_config, soft_deletion_vs_shard_deletion_setup['reload_data'])

@@ -14,7 +14,7 @@ WITH label_split AS (
     SELECT 
         r.user_type,
         unnest(string_to_array(label, ', ')) AS individual_label,
-        is_reverted
+        is_reverted, reversion
     FROM features_quantity f 
     JOIN revision r ON r.revision_id = f.revision_id
     WHERE label IS NOT NULL AND label != ''
@@ -24,7 +24,7 @@ SELECT
     user_type,
     individual_label AS label,
     COUNT(*) FILTER (WHERE is_reverted = 1) AS count_reverted,
-    COUNT(*) FILTER (WHERE is_reverted = 0) AS count_non_reverted
+    COUNT(*) FILTER (WHERE is_reverted = 0 AND reversion = 0) AS count_non_reverted
 FROM label_split
 GROUP BY user_type, individual_label;
 
@@ -34,7 +34,7 @@ WITH label_split AS (
     SELECT 
         r.user_type,
         unnest(string_to_array(label, ', ')) AS individual_label,
-        is_reverted
+        is_reverted, reversion
     FROM features_time f 
     JOIN revision r ON r.revision_id = f.revision_id
     WHERE label IS NOT NULL AND label != ''
@@ -44,7 +44,7 @@ SELECT
     user_type,
     individual_label AS label,
     COUNT(*) FILTER (WHERE is_reverted = 1) AS count_reverted,
-    COUNT(*) FILTER (WHERE is_reverted = 0) AS count_non_reverted
+    COUNT(*) FILTER (WHERE is_reverted = 0 AND reversion = 0) AS count_non_reverted
 FROM label_split
 GROUP BY user_type, individual_label;
 
@@ -54,7 +54,7 @@ WITH label_split AS (
     SELECT 
         r.user_type,
         unnest(string_to_array(label_latitude, ', ')) AS individual_label,
-        is_reverted
+        is_reverted, reversion
     FROM features_globecoordinate f 
     JOIN revision r ON r.revision_id = f.revision_id
     WHERE label_latitude IS NOT NULL AND label_latitude != ''
@@ -64,7 +64,7 @@ SELECT
     user_type,
     individual_label AS label,
     COUNT(*) FILTER (WHERE is_reverted = 1) AS count_reverted,
-    COUNT(*) FILTER (WHERE is_reverted = 0) AS count_non_reverted
+    COUNT(*) FILTER (WHERE is_reverted = 0 AND reversion = 0) AS count_non_reverted
 FROM label_split
 GROUP BY user_type, individual_label;
 
@@ -74,7 +74,7 @@ WITH label_split AS (
     SELECT 
         r.user_type,
         unnest(string_to_array(label_longitude, ', ')) AS individual_label,
-        is_reverted
+        is_reverted, reversion
     FROM features_globecoordinate f 
     JOIN revision r ON r.revision_id = f.revision_id
     WHERE label_longitude IS NOT NULL AND label_longitude != ''
@@ -84,7 +84,7 @@ SELECT
     user_type,
     individual_label AS label,
     COUNT(*) FILTER (WHERE is_reverted = 1) AS count_reverted,
-    COUNT(*) FILTER (WHERE is_reverted = 0) AS count_non_reverted
+    COUNT(*) FILTER (WHERE is_reverted = 0 AND reversion = 0) AS count_non_reverted
 FROM label_split
 GROUP BY user_type, individual_label;
 
@@ -94,7 +94,7 @@ WITH label_split AS (
     SELECT 
         r.user_type,
         unnest(string_to_array(label, ', ')) AS individual_label,
-        is_reverted
+        is_reverted, reversion
     FROM features_text f 
     JOIN revision r ON r.revision_id = f.revision_id
     WHERE label IS NOT NULL AND label != ''
@@ -104,7 +104,7 @@ SELECT
     user_type,
     individual_label AS label,
     COUNT(*) FILTER (WHERE is_reverted = 1) AS count_reverted,
-    COUNT(*) FILTER (WHERE is_reverted = 0) AS count_non_reverted
+    COUNT(*) FILTER (WHERE is_reverted = 0 AND reversion = 0) AS count_non_reverted
 FROM label_split
 GROUP BY user_type, individual_label;
 
@@ -114,16 +114,16 @@ WITH label_split AS (
     SELECT 
         r.user_type,
         unnest(string_to_array(label, ', ')) AS individual_label,
-        is_reverted
+        is_reverted, reversion
     FROM features_entity f 
     JOIN revision r ON r.revision_id = f.revision_id
-    WHERE label IS NOT NULL AND label != ''
+    WHERE label IS NOT NULL AND label != '' and old_value_label != '' AND new_value_label != ''
 )
 SELECT 
     'entity' as datatype,
     user_type,
     individual_label AS label,
     COUNT(*) FILTER (WHERE is_reverted = 1) AS count_reverted,
-    COUNT(*) FILTER (WHERE is_reverted = 0) AS count_non_reverted
+    COUNT(*) FILTER (WHERE is_reverted = 0 AND reversion = 0) AS count_non_reverted
 FROM label_split
 GROUP BY user_type, individual_label;

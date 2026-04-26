@@ -3,31 +3,28 @@ config:
   ml_config_path: src/config/ml_classifier_config.json
   llm_config_path: src/config/llm_classifier_config.json
 classification:
-  classifier_type: ml
+  classifier_type: llm # or llm
+classification_ml:
+  train: true
+  classify: true
+  evaluate: true
+  table_prefix: ''
+  max_batches: null
 analysis:
-  general:
-    db_tables:
-      reload_data: true
-    entity_stats:
-      reload_data: true
-      filter_big_entities: true
-    stats_sa_ao:
-      reload_data: true
-    stats_used_tables:
-      reload_data: true
-    stats_feature_tables:
-      reload_data: true
-
-  classification_analysis:
-    distribution_change_types:
-      reload_data: false
-    distribution_of_revisions_value_changes:
-      reload_data: false
-    entity_types_analysis:
-      reload_data: false
-    property_analysis:
-      reload_data: false
-    change_types_overtime:
-      reload_data: false
+  distribution_change_types:
+    execute: true
+    reload_data: false
+  change_types_overtime:
+    execute: true
+    reload_data: false
+  prop_reverts_overtime:
+    execute: true
+    reload_data: false
+  soft_deletion_vs_shard_deletion:
+    execute: false
+    reload_data: false
+  reverted_edits_user_type_overtime:
+    execute: false
+    reload_data: false
 
   

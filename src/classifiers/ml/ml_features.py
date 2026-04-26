@@ -244,17 +244,17 @@ def extract_text_features(df, old_col, new_col, mask=None):
             'token_count_old',
             'token_count_new',
             'levenshtein_distance',
-            'structure_similarity',
+            # 'structure_similarity',
             'same_value_without_special_char',
             'special_char_count_diff',
-            'special_chars_added',
-            'special_chars_removed',
-            'only_special_char_change',
+            # 'special_chars_added',
+            # 'special_chars_removed',
+            # 'only_special_char_change',
             'char_insertions',
             'char_deletions',
             'char_substitutions',
             'adjacent_char_swap',
-            'avg_word_similarity',
+            # 'avg_word_similarity',
             'has_significant_prefix',
             'has_significant_suffix'
         ])
@@ -493,9 +493,15 @@ def create_time_features(df, feature_cols):
 
                     if part == 'year' and year1 > 0 and year2 == 0:
                             return 1
+                    # cases like: YYYY-MM-DD -> YYYY-01-01 where MM and DD !=01
+                    if (part == 'month' or part == 'day') and month1 > 1 and day1 > 1 and month2 == 1 and day2 == 1:
+                        return 1
+
+                    # cases like YYYY-MM-00 -> YYYY-00-00 
                     if part == 'month' and month1 > 0 and month2 == 0:
                         if not (day1 == 1 and day2 == 0) and not (day1 == 0 and day2 == 0): # if it's not a reformatting change
                             return 1
+                    # cases like YYYY-MM-DD -> YYYY-MM-00
                     if part == 'day' and day1 > 0 and day2 == 0:
                         if not (day1 == 1 and day2 == 0): # if it's not a reformatting change
                             return 1
