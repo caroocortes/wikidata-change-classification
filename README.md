@@ -136,6 +136,8 @@ Training outputs *training_info_<model_name>.pkl* files with the following struc
     }
 `````
 
+**Note:** The `notebook.ipynb` provides code for plotting comparison between different classifiers (Traditional and LLM) from their *training_info.pkl* 
+
 ---
 
 ### LLM baseline

@@ -1,0 +1,6 @@
+LLM classification for datatype text completed in 249.70 seconds, affected 1922 changes.
+LLM classification for datatype entity completed in 160.23 seconds, affected 1299 changes.
+LLM classification for datatype quantity completed in 86.05 seconds, affected 1228 changes.
+LLM classification for datatype time completed in 227.42 seconds, affected 1815 changes.
+LLM classification for datatype globecoordinate_latitude completed in 224.88 seconds, affected 1783 changes.
+LLM classification for datatype globecoordinate_longitude completed in 227.51 seconds, affected 1783 changes.
