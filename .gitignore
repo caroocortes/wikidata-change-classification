@@ -23,3 +23,13 @@ config/*
 *.png
 features/*
 gold_standard/*
+
+notebook.ipynb
+
+src/classifiers/ml/training_info/*
+src/classifiers/ml/features/*
+
+src/results/training/*
+src/results/classification/*
+
+src/analysis/scripts/general_analysis/*
