@@ -9,8 +9,11 @@ This tool assumes a database populated by [WiDiff](https://anonymous.4open.scien
 
 This README is structured as follows:
 - [Repository structure](#repository-structure): presents the repository structure
-- [Change Types](#change-types): presents the change type taxonomy and classification framework
-
+- [Change Types](#change-types): presents the [change type taxonomy](#change-type-taxonomy) and classification framework
+- [Datatype groupings](#datatype-groupings): explains the data type grouping performed
+- [Reproduce results](#reproduce-results): provides links to model, features, and classification results of our ML classifier for reproducibility
+- [Classification](#classification): explains how to train and run our ML-based classification, and describes how to run the LLM baseline.
+- [Analysis](#analysis): explains how to run analysis scripts to obtain plots in the paper.
 ---
 
 ## Repository Structure
@@ -77,32 +80,32 @@ In Step 3, we refine value updates between values of the same datatype and class
 
 Next, we present the definitions of the different change types.
 
-## Change Type Examples
+### Change Type Taxonomy
 
-### Statement Addition
+#### Statement Addition
 A new statement is added to an entity. *Example:* for the entity Uruguay (Q77) the statement `<Uruguay, capital, Montevideo>`[↗](https://www.wikidata.org/w/index.php?title=Q77&diff=next&oldid=5443901) was added.
 
-### Reference/Qualifier Addition
+#### Reference/Qualifier Addition
 A reference or qualifier is added to an existing statement. *Example:* The qualifier `{end time: 2014}` was added to `<Luis Suárez, member of sports team, Liverpool F.C.>`[↗](https://www.wikidata.org/w/index.php?title=Q26517&diff=prev&oldid=318347070), and the reference `{imported from Wikimedia project: Italian Wikipedia}` was added to `<Luis Suárez, mass, 85>`[↗](https://www.wikidata.org/w/index.php?title=Q26517&diff=prev&oldid=355943840).
 
-### Soft Insertion
+#### Soft Insertion
 A statement's rank is changed from *normal* or *deprecated* to *preferred*, indicating that it represents the most current or accurate value among multiple statements for the same property.
 *Example:* `<Luis Suárez, given name, Luis>` rank was promoted to `preferred`[↗](https://www.wikidata.org/w/index.php?title=Q26517&diff=prev&oldid=889792976), when a second statement `<Luis Suárez, given name, Alberto>` was added for the same property[↗](https://www.wikidata.org/w/index.php?title=Q26517&diff=next&oldid=889792976).
 
-### Statement Deletion
+#### Statement Deletion
 A statement is permanently removed from an entity.
 *Example:* `<Frank van Pamelen, image, Lezing Frank van Pamelen over De Vliegende Hollander.webm>`[↗](https://www.wikidata.org/w/index.php?title=Q21281434&diff=next&oldid=1328934396) was deleted after the correct statement (using the `video` property) was added in the prior revision[↗](https://www.wikidata.org/w/index.php?title=Q21281434&diff=prev&oldid=1328934396).
 
-### Reference/Qualifier Deletion
+#### Reference/Qualifier Deletion
 A reference or qualifier is removed from an existing statement. *Example:* The reference `{imported from Wikimedia project: Italian Wikipedia}` was removed from `<Luis Suárez, mass, 85>`[↗](https://www.wikidata.org/w/index.php?title=Q26517&diff=prev&oldid=759983195) and replaced by a more precise one. Similarly, the qualifier `{end time: 2020}` was removed from `<Luis Suárez, member of sports team, Futbol Club Barcelona>` and replaced by `{end time: September 2020}`[↗](https://www.wikidata.org/w/index.php?title=Q26517&diff=prev&oldid=1282785821).
 
-### Soft Deletion
+#### Soft Deletion
 A statement is logically invalidated without being removed, either by setting its rank to *deprecated* or by adding an *end time (P582)* qualifier (in practice, we also consider the properties *earliest end date (P8554)*, *latest end date (P12506)*, and *end period (P3416)*).
 **Examples:**
 - `<X, native label, Twitter>` was deprecated [↗](https://www.wikidata.org/w/index.php?title=Q918&diff=next&oldid=1941896530) in favour of `<X, native label, X>`[↗](https://www.wikidata.org/w/index.php?title=Q918&diff=prev&oldid=1941896530)
 - `{end time: July 2023}` was added to `<X, official name, Twitter>`[↗](https://www.wikidata.org/w/index.php?title=Q918&diff=prev&oldid=1942019219) to mark the renaming of the social network.
 
-### Value Update
+#### Value Update
 A property value is replaced with a semantically different value, altering the statement's meaning.
 **Examples:**
 - *Entity:* `Agnosticism (Q288928)` -> `Islam (Q432)`[↗](https://www.wikidata.org/w/index.php?title=334871&diff=prev&oldid=1035395644)
@@ -111,13 +114,13 @@ A property value is replaced with a semantically different value, altering the s
 - *Globe coordinate:* `"latitude": -3.09771, "longitude": -226.98051}{"latitude": -2.8114, "longitude": 118.169}`[↗](https://www.wikidata.org/w/index.php?title=26727&diff=prev&oldid=135136435).
 - *Time:* `-5-00-00 -> +1951-09-25`[↗](https://www.wikidata.org/w/index.php?title=210447&diff=prev&oldid=1070077246)
 
-### Re-formatting
+#### Re-formatting
 **Examples:**
 - *Text:* `"british series" -> "British series"`[↗](https://www.wikidata.org/w/index.php?title=111218853&diff=prev&oldid=2181757886), `"American hacker & author" -> "American hacker and author"`[↗](https://www.wikidata.org/w/index.php?title=7555&diff=prev&oldid=1879171568), `"The seventh Secretary-General of the United Nations" -> "7th Secretary-General of the United Nations"`[↗](https://www.wikidata.org/w/index.php?title=1254&diff=prev&oldid=494544)
 - *Quantity:* `+4.0 -> +4`[↗](https://www.wikidata.org/w/index.php?title=Q801294&diff=prev&oldid=109984021) or [`+98` -> `+98.0`](https://www.wikidata.org/w/index.php?title=Q801294&diff=prev&oldid=107182680); [`-1` -> `+1`](https://www.wikidata.org/w/index.php?title=Q801294&diff=prev&oldid=110422583)
 - *Time* `+100-00-00 -> -100-00-00`[↗](https://www.wikidata.org/w/index.php?title=Q801294&diff=prev&oldid=663123864), `+1764-01-01 -> +1764-00-00`[↗](https://www.wikidata.org/w/index.php?title=Q801294&diff=prev&oldid=1574340120)
 
-### Textual Change
+#### Textual Change
 A property value of type text is modified to correct or introduce language errors, such as spelling, typos, or grammar, without altering sentence structure or the statement's meaning.
 **Examples:**
 - `"country in southeastern Europe" -> "Country in Southeast Europe"`[↗](https://www.wikidata.org/w/index.php?title=Q225&diff=prev&oldid=1678150592)
@@ -128,14 +131,14 @@ A property value of type text is modified to correct or introduce language error
 - `"sovereignt" -> "sovereignty"`[↗](https://www.wikidata.org/w/index.php?title=42008&diff=prev&oldid=1288335214)
 - `"A mountain in Beijing" -> "mountain in Beijing"`[↗](https://www.wikidata.org/w/index.php?title=111218927&diff=prev&oldid=2306840798)
 
-### Link Change
+#### Link Change
 An entity reference is replaced by another one with a similar or identical label but representing a different concept.
 **Examples:**
 - `Queen Victoria (Q235199) -> Victoria (Q9439)`[↗](https://www.wikidata.org/w/index.php?title=20875&diff=prev&oldid=6084088)
 - `historical Jesus (Q51666) -> Jesus (Q225149)`[↗](https://www.wikidata.org/w/index.php?title=345&diff=prev&oldid=6617845)
 - `McLaren F1 (Q849607) <-> McLaren (Q172030)`[↗](https://www.wikidata.org/w/index.php?title=10490&diff=prev&oldid=6213912)
 
-### Refinement / Unrefinement
+#### Refinement / Unrefinement
 A property value is replaced by a more (refinement) or less (unrefinement) precise value, without changing the statement's meaning. A refinement may add contextual information, rephrase a text to convey the same meaning more clearly, increase numerical precision, or provide a more specific classification. Analogously, an unrefinement may remove contextual information, decrease numerical precision, or generalize to a broader classification. In both cases, the new value remains semantically compatible with the old one.
 **Examples:**
 - *Entity:* `business (Q4830453) <-> automobile manufacturer (Q786820)`[↗](https://www.wikidata.org/w/index.php?title=257815&diff=prev&oldid=1316485355)
@@ -144,7 +147,7 @@ A property value is replaced by a more (refinement) or less (unrefinement) preci
 - *Globe coordinate:* `{"latitude": 14, "longitude": 121.917} <-> {"latitude": 14, "longitude": 121.91666666667}` [↗](https://www.wikidata.org/w/index.php?title=103807&diff=prev&oldid=89413888)
 - *Time:* `+1976-01-01 <-> +1976-11-22`[↗](https://www.wikidata.org/w/index.php?title=92220&diff=prev&oldid=549544850)
 
-### Reverted Edit
+#### Reverted Edit
 A change is considered reverted when a subsequent edit restores a previous value of a property.
 *Example:* `"44th President of the United States of America" -> "Worst president ever"` for Barack Obama (Q76) [↗](https://www.wikidata.org/w/index.php?title=Q76&diff=prev&oldid=7375872) was reverted in a subsequent revision.
 
