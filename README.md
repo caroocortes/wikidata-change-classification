@@ -293,13 +293,13 @@ and set the corresponding `base_url` in the configuration file (`src/config/llm_
 
 ## Analysis
 The script `src/analysis/classification_analisys.py` generates plots for the classified changes. 
-Each function corresponds to a specific analysis and can be run independently by toggling the corresponding `execute` flag in `setup.yml`. When `reload_data=True`, the function executes the underlying SQL query and caches the results as a CSV; subsequent runs load from the cache instead of re-querying the database.
+Each function corresponds to a specific analysis and can be run independently by toggling the corresponding `execute` flag in `setup.yml`. When `reload_data: true`, the function executes the underlying SQL query and caches the results as a CSV; subsequent runs load from the cache instead of re-querying the database, as long as `reload_data: false`.
 
 Available analysis:
 
 | Function | Description |
 |---|---|
-| `distribution_change_types` | Distribution of change types overall, per datatype, and per user type |
+| `distribution_change_types` | Distribution of change types overall, per datatype, and per user type (Figures in the paper) |
 | `change_types_overtime` | Evolution of change types over time, overall and per datatype |
 | `soft_deletion_vs_hard_deletion` | Comparison of soft and hard deletion counts per entity |
 | `reverted_edits` | Reverted edits over time broken down by user type |
@@ -311,3 +311,23 @@ To run the analysis, execute from root:
 ````bash
 python3 -m src.analysis.scripts.classification_analysis
 ````
+
+### Edit patterns
+- To reproduce results for `quantity unrefinements`, run the sql query: */src/analysis/sql/quantity_unrefinement.sql*
+- To reproduce results for `time unrefinements`, run the sql queries in: */src/analysis/sql/time_refinement.sql*
+    - The first query counts how many refinements add just a month, how many just a day and how many add the month and day at the same time.
+    - The second query counts how many time values where added with just a year
+- To reproduce results for `globecoordinate refinement` ( DMS to decimal conversion + comment check) run the sql queries in: */src/analysis/sql/globecoordinate_refinement.sql*
+    - The first query applies to latitude changes and counts how many refinements match that the new value is the DMS to DD conversion of the value in the comment.
+    - The second query applies to longitude changes, counts the same thing.
+- To reproduce results for `text refinement` run the sql queries in: */src/analysis/sql/text_refinement.sql*
+    - The first query counts number of refinements
+    - The second query returns properties that suffer refinements, ordered by their number of refinements in descending order
+    - The third query returns the number of distinct entities that suffer a change to their label or description
+- To reproduce results for `user distribution for entity changes`, run the queries in: *dist_change_types_per_user.sql*. This queries create a table that contains for each ML-classified change type and user type, the number of non reverted edits and number of reverted edits
+
+### Using change types
+- To obtain the reverts of *date of birth (P569)* for which the reason is a lack of surce, run the queries in: */src/analysis/sql/time_refinements_reverted_lack_of_source.sql*
+    - The first query returns the number of refinements for the property P569
+    - The second query returns the number of refinements that are reverted and the reversion comment contains the word *non-WP source(s)*
+- To obtain oscillations between refinements and unrefinements run the query in: */src/analysis/sql/entity_refinement_unrefinement_oscillations.sql*
