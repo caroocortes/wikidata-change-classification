@@ -13,7 +13,7 @@ This README is structured as follows:
 - [Datatype groupings](#datatype-groupings): explains the data type grouping performed
 - [Reproduce results](#reproduce-results): provides links to model, features, and classification results of our ML classifier for reproducibility
 - [Classification](#classification): explains how to train and run our ML-based classification, and describes how to run the LLM baseline.
-- [Analysis](#analysis): explains how to run analysis scripts to obtain plots in the paper.
+- [Analysis](#analysis): explains how to run analysis scripts to obtain plots in the paper and analysis results (e.g., using change types).
 ---
 
 ## Repository Structure
