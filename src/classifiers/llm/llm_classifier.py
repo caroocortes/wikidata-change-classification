@@ -92,9 +92,9 @@ class LLMClassifier(BaseClassifier):
     def classify_changes(self, datatype):
         
         if datatype == 'globecoordinate_latitude' or datatype == 'globecoordinate_longitude':
-            gs_path = 'gold_standard/gold_standard_globecoordinate.csv'
+            gs_path = 'gold_standard/wikidata_edit_history_labeled_changes_globecoordinate.csv'
         else:             
-            gs_path = 'gold_standard/gold_standard.csv'
+            gs_path = 'gold_standard/wikidata_edit_history_labeled_changes.csv'
         
         df = pd.read_csv(gs_path)
 

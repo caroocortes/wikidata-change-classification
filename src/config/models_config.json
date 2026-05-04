@@ -2,7 +2,7 @@
     "Random_Forest": {
         "globecoordinate_latitude": {
             "bootstrap": true,
-            "max_depth": 5,
+            "max_depth": null,
             "n_estimators": 50
         },
         "globecoordinate_longitude": {
@@ -13,7 +13,7 @@
         "quantity": {
             "bootstrap": true,
             "max_depth": null,
-            "n_estimators": 100
+            "n_estimators": 50
         },
         "time": {
             "bootstrap": true,
@@ -22,27 +22,27 @@
         },
         "text": {
             "bootstrap": false,
-            "max_depth": 30,
+            "max_depth": 10,
             "n_estimators": 150
         },
         "entity": {
-            "bootstrap": true,
+            "bootstrap": false,
             "max_depth": 10,
             "n_estimators": 200
         }
     },
     "KN": {
         "globecoordinate_latitude": {
-            "n_neighbors": 15
+            "n_neighbors": 3
         },
         "globecoordinate_longitude": {
-            "n_neighbors": 5
+            "n_neighbors": 3
         },
         "quantity": {
-            "n_neighbors": 10
+            "n_neighbors": 7
         },
         "time": {
-            "n_neighbors": 3
+            "n_neighbors": 15
         },
         "text": {
             "n_neighbors": 3
@@ -54,22 +54,22 @@
     "Gradient_Boosting": {
         "globecoordinate_latitude": {
             "max_depth": 3,
-            "n_estimators": 100
+            "n_estimators": 150
         },
         "globecoordinate_longitude": {
-            "max_depth": 7,
-            "n_estimators": 150
+            "max_depth": 3,
+            "n_estimators": 50
         },
         "quantity": {
             "max_depth": 3,
-            "n_estimators": 100
+            "n_estimators": 50
         },
         "time": {
             "max_depth": 3,
             "n_estimators": 100
         },
         "text": {
-            "max_depth": 5,
+            "max_depth": 3,
             "n_estimators": 200
         },
         "entity": {
@@ -80,11 +80,11 @@
     "XGBoost": {
         "globecoordinate_latitude": {
             "max_depth": 3,
-            "n_estimators": 100
+            "n_estimators": 50
         },
         "globecoordinate_longitude": {
-            "max_depth": 7,
-            "n_estimators": 200
+            "max_depth": 3,
+            "n_estimators": 50
         },
         "quantity": {
             "max_depth": 3,
@@ -95,8 +95,8 @@
             "n_estimators": 50
         },
         "text": {
-            "max_depth": 3,
-            "n_estimators": 50
+            "max_depth": 10,
+            "n_estimators": 200
         },
         "entity": {
             "max_depth": 3,

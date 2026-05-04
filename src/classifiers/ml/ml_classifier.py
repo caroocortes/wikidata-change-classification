@@ -391,9 +391,9 @@ class MLClassifier(BaseClassifier):
             print(f"{'='*50}")
 
             if dt_class == 'globecoordinate_latitude' or dt_class == 'globecoordinate_longitude':
-                df_gs = pd.read_csv(f'{GOLD_STANDARD_DIR}/gold_standard_globecoordinate.csv')
+                df_gs = pd.read_csv(f'{GOLD_STANDARD_DIR}/wikidata_edit_history_labeled_changes_globecoordinate.csv')
             else:
-                df_gs = pd.read_csv(f'{GOLD_STANDARD_DIR}/gold_standard.csv')
+                df_gs = pd.read_csv(f'{GOLD_STANDARD_DIR}/wikidata_edit_history_labeled_changes.csv')
 
             #############################
             #   Load or create features

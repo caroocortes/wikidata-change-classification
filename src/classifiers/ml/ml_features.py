@@ -475,6 +475,9 @@ def create_time_features(df, feature_cols):
             if option == 'date':
                 year1, month1, day1 = get_date_parts(dt1, option='date')
                 year2, month2, day2 = get_date_parts(dt2, option='date')
+
+                year1 = str(year1).replace('-', '').replace('+', '')
+                year2 = str(year2).replace('-', '').replace('+', '')
                 
                 if year1 != year2:
                     return 0
@@ -482,29 +485,22 @@ def create_time_features(df, feature_cols):
                 if change_type == 'added':
                     if part == 'year' and year1 == 0 and year2 != 0:
                         return 1
-                    # YYYY-01-01 -> YYYY-05-00:
-                    # YYYY-01-01 -> YYYY-05-10:
-                    if part == 'month' and ((month1 == 0 and month2 > 0 and day1 == 0) or (month1 == 1 and month2 > 1 and day1 == 1 and (day2 > 1 or day2 == 0))):
+
+                    if part == 'month' and (month1 == 0 and month2 > 0):
                         return 1
-                    if part == 'day' and ((day1 == 0 and day2 > 0) or (day1 == 1 and day2 > 1 and month1 == 1 and month2 > 1)):
+                    if part == 'day' and (day1 == 0 and day2 > 0):
                         return 1
                     return 0
                 elif change_type == 'removed':
 
                     if part == 'year' and year1 > 0 and year2 == 0:
                             return 1
-                    # cases like: YYYY-MM-DD -> YYYY-01-01 where MM and DD !=01
-                    if (part == 'month' or part == 'day') and month1 > 1 and day1 > 1 and month2 == 1 and day2 == 1:
-                        return 1
-
                     # cases like YYYY-MM-00 -> YYYY-00-00 
                     if part == 'month' and month1 > 0 and month2 == 0:
-                        if not (day1 == 1 and day2 == 0) and not (day1 == 0 and day2 == 0): # if it's not a reformatting change
                             return 1
                     # cases like YYYY-MM-DD -> YYYY-MM-00
                     if part == 'day' and day1 > 0 and day2 == 0:
-                        if not (day1 == 1 and day2 == 0): # if it's not a reformatting change
-                            return 1
+                        return 1
                     return 0
            
         except:
@@ -536,48 +532,33 @@ def create_time_features(df, feature_cols):
     def date_part_changed(dt1, dt2, option='year'):
         """
         Returns 1 if there was an actual change in the month/year/day
-        Not re_formatting (e.g. 01-01 -> XX-XX, 01-01 -> 00-00, 01-00 -> XX-00) or unrefinement/refinement (e.g. from X to 0)
+        Not unrefinement/refinement (e.g. from X to 0 or viceversa)
         """
         if 'somevalue' in dt1 or 'novalue' in dt1 or 'somevalue' in dt2 or 'novalue' in dt2:
             return 1
 
         year1, month1, day1 = get_date_parts(dt1, option='date')
         year2, month2, day2 = get_date_parts(dt2, option='date')
+
+        year1 = str(year1).replace('-', '').replace('+', '')
+        year2 = str(year2).replace('-', '').replace('+', '')
         if option == 'year':
             if year1 != year2:
                 return 1
         elif option == 'month':
-            # 1. goes from 01-01 to 00-00
-            # 2. goes from XX-01 to XX-00 with XX that can be 01
-            # 3. goes from 01-00 to 00-00
-            is_reformatting = ((month1 == 1 and day1 == 1 and day2 == 0 and month2 == 0) or  \
-                            (month1 > 0 and month2 > 0 and month1 == month2 and day1 == 1 and day2 == 0) or \
-                            (month1 == 1 and month2 == 0 and day1 == 0 and day2 == 0)) and year1 == year2
-            
-            # 1. just month added
-            # 2. goes from 01-01 to MM-00 or MM-DD
-            # 3. goes from 00-00 to MM-DD
-            is_refinement = ((month1 == 0 and month2 > 0 and day2 == 0) or \
-                            (month1 == 1 and day1 == 1 and month2 > 1 and (day2 > 1 or day2 == 0)) or \
+            # goes from 00-00 to MM-00 or MM-DD
+            is_refinement = ((month1 == 0 and month2 > 0 and day2 == 0 and day1 == 0) or \
                             (month1 == 0 and month2 > 0 and day1 == 0 and day2 > 0)) and year1 == year2
             # goes from MM-00 (month1) to 00-00 (month2)
-            is_unrefinement = (month2 == 0 and month1 > 0) and year1 == year2
-            if month1 != month2 and not is_reformatting and not is_refinement and not is_unrefinement:
+            is_unrefinement = (month2 == 0 and month1 > 0 and day1 == 0 and day2 == 0) and year1 == year2
+            if month1 != month2 and not is_refinement and not is_unrefinement:
                 return 1
         elif option == 'day':
-            # 1. goes from 01-01 to 00-00
-            # 2. goes from XX-01 to XX-00
-            # 3. goes from 01-00 to 00-00
-            is_reformatting = ((month1 == 1 and day1 == 1 and day2 == 0 and month2 == 0) or  \
-                            (month1 > 0 and month2 > 0 and month1 == month2 and day1 == 1 and day2 == 0) or \
-                            (month1 == 1 and month2 == 0 and day1 == 0 and day2 == 0)) and year1 == year2
-            # 1. XX-00 to XX-DD with XX that can be 01/00
-            # 2. goes from 01-01 to MM-DD
-            is_refinement = ((day1 == 0 and day2 > 0) or \
-                            (day1 == 1 and day2 > 1 and month1 == 1 and month2 > 1)) and year1 == year2
-            # goes from XX-00 to XX-DD 
-            is_unrefinement = (day2 == 0 and day1 > 0) and year1 == year2
-            if day1 != day2 and not is_reformatting and not is_refinement and not is_unrefinement:
+            # MM-00 to MM-DD or 00-00 to MM-DD
+            is_refinement = ((day1 == 0 and day2 > 0 and month1 == month2) or \
+                              (day1 == 0 and day2 > 0 and month1 == 0 and month2 > 0)) and year1 == year2
+            is_unrefinement = (day2 == 0 and day1 > 0) and year1 == year2 and month1 == month2
+            if day1 != day2 and not is_refinement and not is_unrefinement:
                 return 1
         return 0
 
@@ -586,7 +567,7 @@ def create_time_features(df, feature_cols):
 
     # for reformatting
     subset['sign_change'] = subset.apply(calc_sign_change, axis=1)
-    subset['change_one_to_zero'] = subset.apply(lambda row: is_placeholder_to_zero(row['old_value'], row['new_value']), axis=1)
+    # subset['change_one_to_zero'] = subset.apply(lambda row: is_placeholder_to_zero(row['old_value'], row['new_value']), axis=1)
 
     # for ref/unref
     subset['day_added'] = subset.apply(lambda row: added_removed_part(row, part='day', option='date', change_type='added'), axis=1)
@@ -602,7 +583,7 @@ def create_time_features(df, feature_cols):
     feature_cols.extend([
         'date_diff_days',
         'sign_change',
-        'change_one_to_zero',
+        # 'change_one_to_zero',
         'day_added',
         'day_removed',
         'month_added',

@@ -5,9 +5,9 @@ config:
 classification:
   classifier_type: llm # or llm
 classification_ml:
-  train: true
-  classify: true
-  evaluate: true
+  train: false
+  classify: false
+  evaluate: false
   table_prefix: ''
   max_batches: null
 analysis:
@@ -15,10 +15,10 @@ analysis:
     execute: true
     reload_data: false
   change_types_overtime:
-    execute: true
+    execute: false
     reload_data: false
   prop_reverts_overtime:
-    execute: true
+    execute: false
     reload_data: false
   soft_deletion_vs_shard_deletion:
     execute: false

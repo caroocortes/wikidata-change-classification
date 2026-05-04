@@ -15,10 +15,10 @@ SOFT_DELETIONS = 'soft_deletions' # rank deprecation (normal/prefered -> depreca
 
 CLASSES_PER_DATATYPE = {
     'text': ['textual_change', 're_formatting', 'refinement', 'unrefinement', 'property_value_update'],
-    'quantity': ['refinement', 'unrefinement', 'property_value_update'],
-    'time': ['re_formatting', 'refinement', 'unrefinement', 'property_value_update'],
-    'globecoordinate_latitude': ['re_formatting', 'refinement', 'unrefinement', 'property_value_update'],
-    'globecoordinate_longitude': ['re_formatting', 'refinement', 'unrefinement', 'property_value_update'],
+    'quantity': ['refinement', 'unrefinement', 'property_value_update', 're_formatting'],
+    'time': ['refinement', 'unrefinement', 'property_value_update'],
+    'globecoordinate_latitude': ['refinement', 'unrefinement', 'property_value_update'],
+    'globecoordinate_longitude': ['refinement', 'unrefinement', 'property_value_update'],
     'entity': ['refinement', 'unrefinement', 'property_value_update', 'link_change'] 
 }
 
@@ -64,14 +64,13 @@ PROP_REP_KEY_TYPES = {
 
 CLASS_DESCRIPTION = {
     'quantity': {
-        'property_value_update': "a property value is replaced with a semantically different value, altering the statement's meaning. This includes corrections of incorrect values and updates reflecting real-world changes. Examples: +1684527 -> +1719070",
+        'property_value_update': "a property value is replaced with a semantically different value, altering the statement's meaning. This includes corrections of incorrect values and updates reflecting real-world changes. It also includes sign changes. Examples: +1684527 -> +1719070, -1 -> +1",
         'refinement': "a property value is replaced by a more specific or precise value, without changing the statement's meaning. The refinement increases numerical precision while remaining semantically compatible with the original value. Examples: +222 -> +222.4",
-        're_formatting': "a property value's representation is modified on a surface-level, without altering its underlying meaning. For quantity values, re-formatting covers changes in numerical precision that do not alter the value (e.g., adding trailing zeros), and sign changes that leave the absolute value unchanged. Examples: +4.0 -> +4, +98 -> +98.0, -1 -> +1",
+        're_formatting': "a property value's representation is modified on a surface-level, without altering its underlying meaning. For quantity values, re-formatting covers changes in numerical precision that do not alter the value (e.g., adding trailing zeros). Examples: +4.0 -> +4, +98 -> +98.0",
         'unrefinement': "a property value is replaced by a less specific or precise value, without changing the statement's meaning. The unrefinement decreases numerical precision while remaining semantically compatible with the original value. Examples: +222.4 -> +222"
     },
     'time': {
-        'property_value_update': "a property value is replaced with a semantically different value, altering the statement's meaning. This includes corrections of incorrect values and updates reflecting real-world changes. Examples: -5-00-00T00:00:00Z -> +1951-09-25T00:00:00Z",
-        're_formatting': "a property value's representation is modified on a surface-level, without altering its underlying meaning. For the time values, re-formatting covers sign changes that leave the date unchanged, and substitutions between placeholders for unknown days or months, as WD allows storing partial dates using 00 for unknown components. Examples: +100-00-00 -> -100-00-00, +1764-01-01 -> +1764-00-00, +2023-03-01 -> +2023-03-00",
+        'property_value_update': "a property value is replaced with a semantically different value, altering the statement's meaning. This includes corrections of incorrect values and updates reflecting real-world changes, It also includes sign changes. Examples: -5-00-00T00:00:00Z -> +1951-09-25T00:00:00Z, +100-00-00 -> -100-00-00",
         'refinement': "a property value is replaced by a more specific or precise value, without changing the statement's meaning. The refinement may add more contextual information, while remaining semantically compatible with the original value. Examples: +1976-01-01T00:00:00Z -> +1976-11-22T00:00:00Z",
         'unrefinement': "a property value is replaced by a less specific or precise value, without changing the statement's meaning. The unrefinement may remove contextual information, while remaining semantically compatible with the original value. Examples: +839-02-04T00:00:00Z -> +839-00-00T00:00:00Z"
     },
@@ -89,14 +88,12 @@ CLASS_DESCRIPTION = {
         'unrefinement': "a property value is replaced by a less specific or precise value, without changing the statement's meaning. The unrefinement removes contextual information, while remaining semantically compatible with the original value. Examples: 2007 thriller movie on the war in Afghanistan directed by Robert Redford -> 2007 film directed by Robert Redford"
     },
     'globecoordinate_longitude': {
-        'property_value_update': "a property value is replaced with a semantically different value, altering the statement's meaning. This includes corrections of incorrect values and updates reflecting real-world changes. Examples: {\"latitude\": -3.09771, \"longitude\": -226.98051} -> {\"latitude\": -2.8114, \"longitude\": 118.169}",
-        're_formatting': "a property value's representation is modified on a surface-level, without altering its underlying meaning. For globecoordinate values, re-formatting covers changes in numerical precision that do not alter the value (e.g., adding trailing zeros), and sign changes that leave the absolute value unchanged. Examples: {\"latitude\": 33.7413, \"longitude\": 151.1391} -> {\"latitude\": -33.7413,\"longitude\": 151.1391}",
+        'property_value_update': "a property value is replaced with a semantically different value, altering the statement's meaning. This includes corrections of incorrect values and updates reflecting real-world changes. It also includes sign changes. Examples: {\"latitude\": -3.09771, \"longitude\": -226.98051} -> {\"latitude\": -2.8114, \"longitude\": 118.169}, {\"latitude\": 33.7413, \"longitude\": 151.1391} -> {\"latitude\": -33.7413,\"longitude\": 151.1391}",
         'refinement': "a property value is replaced by a more specific or precise value, without changing the statement's meaning. The refinement increases numerical precision, while remaining semantically compatible with the original value. Examples: {\"latitude\": 14, \"longitude\": 121.917} -> {\"latitude\":14, \"longitude\": 121.91666666667}",
         'unrefinement': "a property value is replaced by a less specific or precise value, without changing the statement's meaning. The unrefinement decreases numerical precision, while remaining semantically compatible with the original value. Examples: {\"latitude\": 32, \"longitude\": 35.383333333333} -> {\"latitude\": 32, \"longitude\": 35.4}"
     },
     'globecoordinate_latitude': {
-        'property_value_update': "a property value is replaced with a semantically different value, altering the statement's meaning. This includes corrections of incorrect values and updates reflecting real-world changes. Examples: {\"latitude\": -3.09771, \"longitude\": -226.98051} -> {\"latitude\": -2.8114, \"longitude\": 118.169}",
-        're_formatting': "a property value's representation is modified on a surface-level, without altering its underlying meaning. For globecoordinate values, re-formatting covers changes in numerical precision that do not alter the value (e.g., adding trailing zeros), and sign changes that leave the absolute value unchanged. Examples: {\"latitude\": 33.7413, \"longitude\": 151.1391} -> {\"latitude\": -33.7413,\"longitude\": 151.1391}",
+        'property_value_update': "a property value is replaced with a semantically different value, altering the statement's meaning. This includes corrections of incorrect values and updates reflecting real-world changes. It also includes sign changes. Examples: {\"latitude\": -3.09771, \"longitude\": -226.98051} -> {\"latitude\": -2.8114, \"longitude\": 118.169}, {\"latitude\": 33.7413, \"longitude\": 151.1391} -> {\"latitude\": -33.7413,\"longitude\": 151.1391}",
         'refinement': "a property value is replaced by a more specific or precise value, without changing the statement's meaning. The refinement increases numerical precision, while remaining semantically compatible with the original value. Examples: {\"latitude\": 14, \"longitude\": 121.917} -> {\"latitude\":14, \"longitude\": 121.91666666667}",
         'unrefinement': "a property value is replaced by a less specific or precise value, without changing the statement's meaning. The unrefinement decreases numerical precision, while remaining semantically compatible with the original value. Examples: {\"latitude\": 32, \"longitude\": 35.383333333333} -> {\"latitude\": 32, \"longitude\": 35.4}"
     }
