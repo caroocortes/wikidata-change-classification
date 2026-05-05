@@ -77,7 +77,7 @@ Note that classification for Step 1 and 2 is performed in WiDiff by enabling *re
 
 In Step 3, we refine value updates between values of the same datatype and classify them into refinement, unrefinement, re-formatting, textual change, link change, or value update (for complete changes between values).
 
-![classification framework](change_classification_framework.svg)
+![classification framework](change_classification_framework.png)
 
 Next, we present the definitions of the different change types.
 
