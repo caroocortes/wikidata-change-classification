@@ -195,7 +195,7 @@ To re-use this resources, unzip files and put in the following folders:
 - trained_model.zip -> src/results/training/ (contains the best model used for classification of all of Wikidata edit history)
 - models_config.json -> src/config/models_config.json (contains the best parameters for the different algorithms obtained via grid search).
 
-Additionally, we provide the training dataset at [Labeled Dataset of Wikidata Edit History Changes][https://zenodo.org/records/19764415]. Download both files, put them in a folder *gold_standard/* at the root of the project. 
+Additionally, we provide the training dataset at [Labeled Dataset of Wikidata Edit History Changes](https://zenodo.org/records/19764415). Download both files, put them in a folder *gold_standard/* at the root of the project. 
 
 Follow the steps below for classification or traininig.
 
