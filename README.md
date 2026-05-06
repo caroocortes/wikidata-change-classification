@@ -227,7 +227,7 @@ Example: If you want to use random forest, then *src/classifiers/ml/training_inf
 
 #### Training
 
-For training, the transitive closure cache must be created beforehand. Refer to [WiDiff](https://anonymous.4open.science/r/WiDiff-DC11/README.md) for transitive closure extraction and cache creation (Section *Transitive closure cachce creation* in README). The `transitive_closure_cache.pkl` file should be inside the directory `/transitive_closures`. *Note:* The .csv files for the cache creation are provided in [WiDiff: Wikidata Entity Labels, Descriptions and Alias, Types (P31 and P279), and Transitive Closures (October 2025)](https://doi.org/10.5281/zenodo.19771721).
+For training, the transitive closure cache must be created beforehand. Refer to [WiDiff](https://anonymous.4open.science/r/WiDiff-DC11/README.md) for transitive closure extraction and cache creation (Section *Transitive closure cachce creation* in README). The `transitive_closure_cache.pkl` file should be inside a directory called `transitive_closures` inside `/src/classifiers/ml/`. *Note:* The .csv files for the cache creation are provided in [WiDiff: Wikidata Entity Labels, Descriptions and Alias, Types (P31 and P279), and Transitive Closures (October 2025)](https://doi.org/10.5281/zenodo.19771721).
 
 **Configuration**
 
