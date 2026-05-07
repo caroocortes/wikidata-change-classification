@@ -3,10 +3,10 @@ config:
   ml_config_path: src/config/ml_classifier_config.json
   llm_config_path: src/config/llm_classifier_config.json
 classification:
-  classifier_type: llm # or llm
+  classifier_type: ml # or llm
 classification_ml:
   train: false
-  classify: false
+  classify: true
   evaluate: false
   table_prefix: ''
   max_batches: null

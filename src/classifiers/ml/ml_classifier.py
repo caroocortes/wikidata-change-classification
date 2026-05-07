@@ -215,7 +215,7 @@ class MLClassifier(BaseClassifier):
         
         return model, None
 
-    def perform_kfold_training(self, X_scaled, y_binary, dt_class, label_binarizer, all_labels, feature_cols, df_index, classifier='Random_Forest'):
+    def perform_kfold_training(self, X, y_binary, dt_class, label_binarizer, all_labels, feature_cols, df_index, classifier='Random_Forest'):
         print(f'Performing k-fold training for {dt_class}, {classifier}')
         
         is_multilabel = y_binary.shape[1] > 1 # shape[1] is number of columns (labels)
@@ -237,10 +237,10 @@ class MLClassifier(BaseClassifier):
             
         if is_multilabel:
             cv = MultilabelStratifiedKFold(n_splits=self.fold_splits, shuffle=True, random_state=self.random_state)
-            split = cv.split(X_scaled, y_binary)
+            split = cv.split(X, y_binary)
         else:
             cv = KFold(n_splits=self.fold_splits, shuffle=True, random_state=self.random_state)
-            split = cv.split(X_scaled)
+            split = cv.split(X)
 
         results_folds = []
         # aggregate all test and predictions across all folds, given that each instance appears only once in the test set
@@ -248,15 +248,16 @@ class MLClassifier(BaseClassifier):
         all_y_test = []
         all_y_pred = []
 
-        # do grid search to get best params (if grid search was performed before, just reads the stored best params)
-        # best_params = self.perform_grid_search(classifier, is_multilabel, dt_class, X_scaled, y_binary, model_config, cv)
-
         start_time = time.time()
         for fold, (train_index, test_index) in enumerate(split, 1):
 
-            X_train, X_test = X_scaled[train_index], X_scaled[test_index]
+            X_train, X_test = X.iloc[train_index], X.iloc[test_index]
             y_train, y_test = y_binary[train_index], y_binary[test_index]
 
+            fold_scaler = StandardScaler()
+            X_train_scaled = fold_scaler.fit_transform(X_train)
+            X_test_scaled = fold_scaler.transform(X_test)
+            
             if is_multilabel:
                 inner_cv = MultilabelStratifiedKFold(n_splits=3, shuffle=True, random_state=self.random_state)
             else:
@@ -265,7 +266,7 @@ class MLClassifier(BaseClassifier):
             # grid search never sees X_test
             best_params = self.perform_grid_search(
                 classifier, is_multilabel, dt_class,
-                X_train, y_train,  # only train split
+                X_train_scaled, y_train,  # only train split
                 model_config, inner_cv,
                 fold
             )
@@ -277,13 +278,13 @@ class MLClassifier(BaseClassifier):
             actual_test_index = df_index[test_index]
 
             if is_multilabel:
-                clf = model.fit(X_train, y_train) # fit model on trainting data
+                clf = model.fit(X_train_scaled, y_train) # fit model on trainting data
 
                 # bEFORE:
-                # y_pred = clf.predict(X_test) # predict on test data
+                # y_pred = clf.predict(X_test_scaled) # predict on test data
 
-                y_pred = np.zeros((len(X_test), len(label_binarizer.classes_)))
-                y_pred_proba = model.predict_proba(X_test)
+                y_pred = np.zeros((len(X_test_scaled), len(label_binarizer.classes_)))
+                y_pred_proba = model.predict_proba(X_test_scaled)
                 # predict_proba from docs: ndarray of shape (n_samples, n_classes), or a list of such arrays
                 # The class probabilities of the input samples. The order of the classes corresponds to that in the attribute classes_.
                 
@@ -329,8 +330,8 @@ class MLClassifier(BaseClassifier):
 
             else:
                 # if it's not multi-label it's binary -> calculate metrics overall, don't filter per label
-                clf = model.fit(X_train, y_train.ravel())
-                y_pred = clf.predict(X_test)
+                clf = model.fit(X_train_scaled, y_train.ravel())
+                y_pred = clf.predict(X_test_scaled)
                 
                 metrics_results[dt_class] = {} # dt_class here is property_replacement or reverted_edit
                 
@@ -468,10 +469,8 @@ class MLClassifier(BaseClassifier):
                 with open(path_to_scalers, 'rb') as f:
                     scalers = pickle.load(f)
                 scaler = scalers[dt_class]
-                X_scaled = scaler.transform(X)
             else:# else: uses the scaler created in the beggining and it gets saved at the end
                 scaler = StandardScaler()
-                X_scaled = scaler.fit_transform(X)
                 scalers[dt_class] = scaler
 
             # Split label into binary columns
@@ -491,10 +490,10 @@ class MLClassifier(BaseClassifier):
                 all_labels = df['label'].tolist() 
                 y_binary = label_binarizer.fit_transform(df['label'])
 
-            results_folds_rf, micro_averages_rf = self.perform_kfold_training(X_scaled, y_binary, dt_class, label_binarizer, all_labels, feature_cols, df.index.values, classifier='Random_Forest')
-            results_folds_kn, micro_averages_kn = self.perform_kfold_training(X_scaled, y_binary, dt_class, label_binarizer, all_labels, feature_cols, df.index.values, classifier='KN')
-            # results_folds_gb, micro_averages_gb = self.perform_kfold_training(X_scaled, y_binary, dt_class, label_binarizer, all_labels, feature_cols, df.index.values, classifier='Gradient_Boosting')
-            results_folds_xg, micro_averages_xg = self.perform_kfold_training(X_scaled, y_binary, dt_class, label_binarizer, all_labels, feature_cols, df.index.values, classifier='XGBoost')
+            results_folds_rf, micro_averages_rf = self.perform_kfold_training(X, y_binary, dt_class, label_binarizer, all_labels, feature_cols, df.index.values, classifier='Random_Forest')
+            results_folds_kn, micro_averages_kn = self.perform_kfold_training(X, y_binary, dt_class, label_binarizer, all_labels, feature_cols, df.index.values, classifier='KN')
+            # results_folds_gb, micro_averages_gb = self.perform_kfold_training(X_numpy, y_binary, dt_class, label_binarizer, all_labels, feature_cols, df.index.values, classifier='Gradient_Boosting')
+            results_folds_xg, micro_averages_xg = self.perform_kfold_training(X, y_binary, dt_class, label_binarizer, all_labels, feature_cols, df.index.values, classifier='XGBoost')
 
             classifiers_rf[dt_class] = {
                 'results_folds': results_folds_rf,
