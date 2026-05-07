@@ -17,7 +17,7 @@ if __name__ == "__main__":
             pipeline.evaluate()
 
     if classifier_type == 'llm' or (classifier_type == 'ml' and set_up['classification_ml']['classify']):
-        datatypes = ['quantity', 'time', 'globecoordinate_latitude', 'globecoordinate_longitude', 'text', 'entity']
+        datatypes = ['entity', 'text', 'quantity', 'time', 'globecoordinate_latitude', 'globecoordinate_longitude']
         for datatype in datatypes:
             if classifier_type == 'ml':
                 table_prefix = set_up['classification_ml']['table_prefix']

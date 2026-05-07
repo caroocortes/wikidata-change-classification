@@ -27,8 +27,8 @@ DATATYPE_INDEPENDENT_CLASSES = [REVERTED_EDIT_LABEL, PROPERTY_REPLACEMENT_LABEL,
 # ===============================
 #  ML Models 
 # ===============================
-ML_MODELS = ['kn', 'random_forest', 'gradient_boosting', 'xgboost']
-ML_MODELS_LABELS = ['K-Neighbors', 'Random Forest', 'Gradient Boosting', 'XGBoost']
+ML_MODELS = ['kn', 'random_forest','xgboost']
+ML_MODELS_LABELS = ['K-Neighbors', 'Random Forest', 'XGBoost']
 
 # ===============================
 #  Paths 

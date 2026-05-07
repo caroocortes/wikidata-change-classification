@@ -1121,7 +1121,7 @@ def create_entity_features(df, feature_cols):
     try:
         print('Loading cache', flush=True)
         start_time = time.time()
-        TRANSITIVE_CACHE_PATH = os.path.join('transitive_closures', 'transitive_closure_cache.pkl')
+        TRANSITIVE_CACHE_PATH = os.path.join(BASE_DIR, 'transitive_closures', 'transitive_closure_cache.pkl')
         with open(TRANSITIVE_CACHE_PATH, 'rb') as f:
             transitive_cache = pickle.load(f)
 

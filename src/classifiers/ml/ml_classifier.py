@@ -75,8 +75,8 @@ class MLClassifier(BaseClassifier):
 
         return df_type, feature_cols
     
-    def perform_grid_search(self, classifier, is_multilabel, dt_class, X_scaled, y_binary, model_config, cv):
-        print(f'Performing grid search for {classifier} on datatype {dt_class}...')
+    def perform_grid_search(self, classifier, is_multilabel, dt_class, X_scaled, y_binary, model_config, cv, fold):
+        print(f'Performing grid search for {classifier} on datatype {dt_class}, fold {fold}')
         """
             Model Config structure:
             {
@@ -93,10 +93,10 @@ class MLClassifier(BaseClassifier):
                 "Gradient_Boosting": {...} // the same structure as RF
             }
         """
-
-        if model_config.get(classifier, {}).get(dt_class, {}) != {}: # best params already calcualted -> just return them
+        existing = model_config.get(classifier, {}).get(dt_class, {})
+        if fold in existing: # best params already calcualted -> just return them
             print('Grid search already performed. Loading best params')
-            best_params = model_config[classifier][dt_class]
+            best_params = model_config[classifier][dt_class][fold]
             return best_params
         
         if classifier == 'Random_Forest':
@@ -119,28 +119,30 @@ class MLClassifier(BaseClassifier):
             }
             grid_search = GridSearchCV(KNeighborsClassifier(), param_grid=param_grid, cv=cv)
 
-        elif classifier == 'Gradient_Boosting':
-            param_grid = {
-                'n_estimators': [50, 100, 150, 200],
-                'max_depth': [3, 5, 7, 10]
-            }
-            non_multilabel_model = GradientBoostingClassifier(random_state=self.random_state)
+        # elif classifier == 'Gradient_Boosting':
+        #     param_grid = {
+        #         'n_estimators': [50, 100, 150, 200],
+        #         'max_depth': [3, 5, 7, 10],
+        #         'subsample': [0.6, 0.8, 1.0],
+        #         'max_features': ['sqrt', 'log2', None]
+        #     }
+        #     non_multilabel_model = GradientBoostingClassifier(random_state=self.random_state)
 
-            if is_multilabel: 
-                # NOTE: when using MultiOutputClassifier the internal estimator's 
-                # parameters need to be accessed with the prefix estimator__, if not, it just considers the params for the MultiOutput
-                param_grid = {
-                    f'estimator__{key}': value 
-                    for key, value in param_grid.items()
-                }
+        #     if is_multilabel: 
+        #         # NOTE: when using MultiOutputClassifier the internal estimator's 
+        #         # parameters need to be accessed with the prefix estimator__, if not, it just considers the params for the MultiOutput
+        #         param_grid = {
+        #             f'estimator__{key}': value 
+        #             for key, value in param_grid.items()
+        #         }
                 
-                grid_search = GridSearchCV(
-                    MultiOutputClassifier(non_multilabel_model), 
-                    param_grid=param_grid, 
-                    cv=cv
-                )
-            else:
-                grid_search = GridSearchCV(non_multilabel_model, param_grid=param_grid, cv=cv)
+        #         grid_search = GridSearchCV(
+        #             MultiOutputClassifier(non_multilabel_model), 
+        #             param_grid=param_grid, 
+        #             cv=cv
+        #         )
+        #     else:
+        #         grid_search = GridSearchCV(non_multilabel_model, param_grid=param_grid, cv=cv)
 
         elif classifier == 'XGBoost': # does not require meta model for multi-label
             param_grid = {
@@ -158,7 +160,11 @@ class MLClassifier(BaseClassifier):
                 key.replace('estimator__', ''): value 
                 for key, value in best_params.items()
             }
-        model_config[classifier][dt_class] = best_params
+
+        if dt_class not in model_config[classifier]:
+            model_config[classifier][dt_class] = {}
+        
+        model_config[classifier][dt_class][fold] = best_params
 
         with open(MODELS_CONFIG_PATH, 'w') as config_file:
             json.dump(model_config, config_file, indent=4)
@@ -185,18 +191,18 @@ class MLClassifier(BaseClassifier):
 
             model = KNeighborsClassifier(n_neighbors=best_params['n_neighbors'])
         
-        elif classifier == 'Gradient_Boosting': # needs ensemble (MultiOutputClassifier) to support multi-label
+        # elif classifier == 'Gradient_Boosting': # needs ensemble (MultiOutputClassifier) to support multi-label
                 
-            # Base classifier
-            base_model = GradientBoostingClassifier(
-                n_estimators=best_params['n_estimators'], 
-                max_depth=best_params['max_depth'],
-                random_state=self.random_state 
-            )
+        #     # Base classifier
+        #     base_model = GradientBoostingClassifier(
+        #         n_estimators=best_params['n_estimators'], 
+        #         max_depth=best_params['max_depth'],
+        #         random_state=self.random_state 
+        #     )
 
-            model = base_model
-            if is_multilabel:
-                model = MultiOutputClassifier(base_model)
+        #     model = base_model
+        #     if is_multilabel:
+        #         model = MultiOutputClassifier(base_model)
 
         elif classifier == 'XGBoost': 
             
@@ -207,7 +213,7 @@ class MLClassifier(BaseClassifier):
                 random_state=self.random_state 
             )
         
-        return model, base_model if classifier == 'Gradient_Boosting' and is_multilabel else None
+        return model, None
 
     def perform_kfold_training(self, X_scaled, y_binary, dt_class, label_binarizer, all_labels, feature_cols, df_index, classifier='Random_Forest'):
         print(f'Performing k-fold training for {dt_class}, {classifier}')
@@ -243,15 +249,28 @@ class MLClassifier(BaseClassifier):
         all_y_pred = []
 
         # do grid search to get best params (if grid search was performed before, just reads the stored best params)
-        best_params = self.perform_grid_search(classifier, is_multilabel, dt_class, X_scaled, y_binary, model_config, cv)
+        # best_params = self.perform_grid_search(classifier, is_multilabel, dt_class, X_scaled, y_binary, model_config, cv)
 
         start_time = time.time()
         for fold, (train_index, test_index) in enumerate(split, 1):
 
-            model, base_model = self.get_model_instance(classifier, is_multilabel, best_params)
-
             X_train, X_test = X_scaled[train_index], X_scaled[test_index]
             y_train, y_test = y_binary[train_index], y_binary[test_index]
+
+            if is_multilabel:
+                inner_cv = MultilabelStratifiedKFold(n_splits=3, shuffle=True, random_state=self.random_state)
+            else:
+                inner_cv = KFold(n_splits=3, shuffle=True, random_state=self.random_state)
+
+            # grid search never sees X_test
+            best_params = self.perform_grid_search(
+                classifier, is_multilabel, dt_class,
+                X_train, y_train,  # only train split
+                model_config, inner_cv,
+                fold
+            )
+
+            model, _ = self.get_model_instance(classifier, is_multilabel, best_params)
 
             metrics_results = {}
 
@@ -328,11 +347,12 @@ class MLClassifier(BaseClassifier):
                 'fold': fold,
                 'metrics_results': metrics_results,
                 'model': clf,
-                'base_model': base_model if classifier == 'Gradient_Boosting' and is_multilabel else None,
+                # 'base_model': base_model if classifier == 'Gradient_Boosting' and is_multilabel else None,
                 'features': feature_cols,
                 # 'train_index': train_index, 
                 # 'test_index': actual_test_index,
                 'multi_label_binarizer': label_binarizer,
+                'best_params': best_params
                 # 'label_distribution': Counter(all_labels),
                 # 'X_test': X_test,
                 # 'y_pred': y_pred,
@@ -473,7 +493,7 @@ class MLClassifier(BaseClassifier):
 
             results_folds_rf, micro_averages_rf = self.perform_kfold_training(X_scaled, y_binary, dt_class, label_binarizer, all_labels, feature_cols, df.index.values, classifier='Random_Forest')
             results_folds_kn, micro_averages_kn = self.perform_kfold_training(X_scaled, y_binary, dt_class, label_binarizer, all_labels, feature_cols, df.index.values, classifier='KN')
-            results_folds_gb, micro_averages_gb = self.perform_kfold_training(X_scaled, y_binary, dt_class, label_binarizer, all_labels, feature_cols, df.index.values, classifier='Gradient_Boosting')
+            # results_folds_gb, micro_averages_gb = self.perform_kfold_training(X_scaled, y_binary, dt_class, label_binarizer, all_labels, feature_cols, df.index.values, classifier='Gradient_Boosting')
             results_folds_xg, micro_averages_xg = self.perform_kfold_training(X_scaled, y_binary, dt_class, label_binarizer, all_labels, feature_cols, df.index.values, classifier='XGBoost')
 
             classifiers_rf[dt_class] = {
@@ -486,10 +506,10 @@ class MLClassifier(BaseClassifier):
                 'micro_averages': micro_averages_kn
             }
 
-            classifiers_gb[dt_class] = {
-                'results_folds': results_folds_gb,
-                'micro_averages': micro_averages_gb
-            }
+            # classifiers_gb[dt_class] = {
+            #     'results_folds': results_folds_gb,
+            #     'micro_averages': micro_averages_gb
+            # }
 
             classifiers_xgb[dt_class] = {
                 'results_folds': results_folds_xg,
@@ -499,7 +519,7 @@ class MLClassifier(BaseClassifier):
         models_to_save = {
             'random_forest': classifiers_rf,
             'kn': classifiers_kn,
-            'gradient_boosting': classifiers_gb,
+            # 'gradient_boosting': classifiers_gb,
             'xgboost': classifiers_xgb
         }
 
@@ -775,7 +795,7 @@ class MLClassifier(BaseClassifier):
 
         results per fold:
         {
-            'classifier': string, # kn, xgboost, random_forest, gradient_boosting
+            'classifier': string, # kn, xgboost, random_forest
             'fold': int,
             'metrics_results': {
                 'label': { 
@@ -807,7 +827,7 @@ class MLClassifier(BaseClassifier):
 
         # Create data structure
         results = {}
-        for model in ['kn', 'random_forest', 'gradient_boosting', 'xgboost']:
+        for model in ['kn', 'random_forest', 'xgboost']:
             print(f'Processing model: {model}')
             with open(f'{TRAINING_INFO_DIR}/training_info_{model}.pkl', 'rb') as f:
                 training_info_model = pickle.load(f)
