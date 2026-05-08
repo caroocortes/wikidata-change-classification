@@ -191,8 +191,8 @@ We provide the trained models and features in [Wikidata Change Classification Tr
 
 To re-use this resources, unzip files and put in the following folders:
 - features.zip -> src/classifiers/ml/features/ (contains features calculated for training dataser)
-- training_info_all_classifiers.zip -> src/classifiers/ml/training_info/ (contains different trained models evaluated)
-- trained_model.zip -> src/results/training/ (contains the best model used for classification of all of Wikidata edit history)
+- training_info.zip -> src/classifiers/ml/training_info/ (contains different trained models (.pkl files) evaluated)
+- trained_model.zip -> src/results/training/ (contains the best model used for classification of all of Wikidata edit history + metrics)
 - models_config.json -> src/config/models_config.json (contains the best parameters for the different algorithms obtained via grid search).
 
 Additionally, we provide the training dataset at [Labeled Dataset of Wikidata Edit History Changes](https://zenodo.org/records/19764415). Download both files, put them in a folder *gold_standard/* at the root of the project. 
@@ -273,6 +273,7 @@ Training outputs *training_info_<model_name>.pkl* files with the following struc
         'base_model': model, # base model (GradientBoosting, RandomForest, XGBoost, KNN)
         'features': feature_cols, 
         'multi_label_binarizer': label_binarizer,
+        'best_params': best_params_from_grid_search
     }
 `````
 
@@ -293,6 +294,8 @@ vllm serve Qwen/Qwen3.5-35B-A3B-FP8 \
 and set the corresponding `base_url` in the configuration file (`src/config/llm_classifier.json`). 
 2. Set *classifier_type* to *llm* in `set_up.yml`. 
 3. Run `python3 main.py`. This classifies changes on the labeled dataset (`gold_standard/gold_standard.csv`)
+
+*Note:* We used 2 40GB VRAM GPUs and that's why --tensor-parallel-size 2 is enabled. If running on a single GPU, then this should be removed
 
 ---
 

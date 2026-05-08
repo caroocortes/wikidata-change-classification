@@ -8,6 +8,7 @@ from sklearn.multioutput import MultiOutputClassifier
 from sklearn.model_selection import KFold, GridSearchCV
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from iterstrat.ml_stratifiers import MultilabelStratifiedKFold
+from sklearn.utils.class_weight import compute_sample_weight
 from IPython.display import display
 import csv
 
@@ -75,8 +76,8 @@ class MLClassifier(BaseClassifier):
 
         return df_type, feature_cols
     
-    def perform_grid_search(self, classifier, is_multilabel, dt_class, X_scaled, y_binary, model_config, cv, fold):
-        print(f'Performing grid search for {classifier} on datatype {dt_class}, fold {fold}')
+    def perform_grid_search(self, classifier, is_multilabel, dt_class, X_scaled, y_binary, model_config, cv):
+        print(f'Performing grid search for {classifier} on datatype {dt_class}')
         """
             Model Config structure:
             {
@@ -93,10 +94,9 @@ class MLClassifier(BaseClassifier):
                 "Gradient_Boosting": {...} // the same structure as RF
             }
         """
-        existing = model_config.get(classifier, {}).get(dt_class, {})
-        if fold in existing: # best params already calcualted -> just return them
+        if model_config.get(classifier, {}).get(dt_class, {}): # best params already calcualted -> just return them
             print('Grid search already performed. Loading best params')
-            best_params = model_config[classifier][dt_class][fold]
+            best_params = model_config[classifier][dt_class]
             return best_params
         
         if classifier == 'Random_Forest':
@@ -164,7 +164,7 @@ class MLClassifier(BaseClassifier):
         if dt_class not in model_config[classifier]:
             model_config[classifier][dt_class] = {}
         
-        model_config[classifier][dt_class][fold] = best_params
+        model_config[classifier][dt_class] = best_params
 
         with open(MODELS_CONFIG_PATH, 'w') as config_file:
             json.dump(model_config, config_file, indent=4)
@@ -215,7 +215,7 @@ class MLClassifier(BaseClassifier):
         
         return model, None
 
-    def perform_kfold_training(self, X, y_binary, dt_class, label_binarizer, all_labels, feature_cols, df_index, classifier='Random_Forest'):
+    def perform_kfold_training(self, X_scaled, y_binary, dt_class, label_binarizer, all_labels, feature_cols, df_index, classifier='Random_Forest'):
         print(f'Performing k-fold training for {dt_class}, {classifier}')
         
         is_multilabel = y_binary.shape[1] > 1 # shape[1] is number of columns (labels)
@@ -237,10 +237,10 @@ class MLClassifier(BaseClassifier):
             
         if is_multilabel:
             cv = MultilabelStratifiedKFold(n_splits=self.fold_splits, shuffle=True, random_state=self.random_state)
-            split = cv.split(X, y_binary)
+            split = cv.split(X_scaled, y_binary)
         else:
             cv = KFold(n_splits=self.fold_splits, shuffle=True, random_state=self.random_state)
-            split = cv.split(X)
+            split = cv.split(X_scaled)
 
         results_folds = []
         # aggregate all test and predictions across all folds, given that each instance appears only once in the test set
@@ -248,28 +248,23 @@ class MLClassifier(BaseClassifier):
         all_y_test = []
         all_y_pred = []
 
+        if is_multilabel:
+            gs_cv = MultilabelStratifiedKFold(n_splits=3, shuffle=True, random_state=self.random_state)
+        else:
+            gs_cv = KFold(n_splits=3, shuffle=True, random_state=self.random_state)
+
+        # grid search never sees 
+        best_params = self.perform_grid_search(
+            classifier, is_multilabel, dt_class,
+            X_scaled, y_binary,
+            model_config, gs_cv
+        )
+
         start_time = time.time()
         for fold, (train_index, test_index) in enumerate(split, 1):
 
-            X_train, X_test = X.iloc[train_index], X.iloc[test_index]
+            X_train, X_test = X_scaled[train_index], X_scaled[test_index]
             y_train, y_test = y_binary[train_index], y_binary[test_index]
-
-            fold_scaler = StandardScaler()
-            X_train_scaled = fold_scaler.fit_transform(X_train)
-            X_test_scaled = fold_scaler.transform(X_test)
-            
-            if is_multilabel:
-                inner_cv = MultilabelStratifiedKFold(n_splits=3, shuffle=True, random_state=self.random_state)
-            else:
-                inner_cv = KFold(n_splits=3, shuffle=True, random_state=self.random_state)
-
-            # grid search never sees X_test
-            best_params = self.perform_grid_search(
-                classifier, is_multilabel, dt_class,
-                X_train_scaled, y_train,  # only train split
-                model_config, inner_cv,
-                fold
-            )
 
             model, _ = self.get_model_instance(classifier, is_multilabel, best_params)
 
@@ -278,13 +273,13 @@ class MLClassifier(BaseClassifier):
             actual_test_index = df_index[test_index]
 
             if is_multilabel:
-                clf = model.fit(X_train_scaled, y_train) # fit model on trainting data
+                clf = model.fit(X_train, y_train) # fit model on trainting data
 
                 # bEFORE:
-                # y_pred = clf.predict(X_test_scaled) # predict on test data
+                # y_pred = clf.predict(X_test) # predict on test data
 
-                y_pred = np.zeros((len(X_test_scaled), len(label_binarizer.classes_)))
-                y_pred_proba = model.predict_proba(X_test_scaled)
+                y_pred = np.zeros((len(X_test), len(label_binarizer.classes_)))
+                y_pred_proba = model.predict_proba(X_test)
                 # predict_proba from docs: ndarray of shape (n_samples, n_classes), or a list of such arrays
                 # The class probabilities of the input samples. The order of the classes corresponds to that in the attribute classes_.
                 
@@ -330,8 +325,8 @@ class MLClassifier(BaseClassifier):
 
             else:
                 # if it's not multi-label it's binary -> calculate metrics overall, don't filter per label
-                clf = model.fit(X_train_scaled, y_train.ravel())
-                y_pred = clf.predict(X_test_scaled)
+                clf = model.fit(X_train, y_train.ravel())
+                y_pred = clf.predict(X_test)
                 
                 metrics_results[dt_class] = {} # dt_class here is property_replacement or reverted_edit
                 
@@ -452,26 +447,14 @@ class MLClassifier(BaseClassifier):
             X = df[feature_cols].astype(float).fillna(0) # features
             print(X.shape)
             X.replace([np.inf, -np.inf], np.nan).fillna(0, inplace=True)
-            
-            # Remove zero-variance features
-            zero_std_cols = X.columns[X.std() == 0]
-
-            if len(zero_std_cols) > 0:
-                X = X.drop(columns=zero_std_cols)
-                print('Removed zero-variance features: ', zero_std_cols.tolist())
 
             with open(f'{FEATURES_DIR}/feature_cols_{dt_class}.pkl', 'wb') as f:
-                pickle.dump([f for f in feature_cols if f not in zero_std_cols], f) # remove zero-variance features
+                pickle.dump(feature_cols, f)
             
             # Scale
-            path_to_scalers = f'{FEATURES_DIR}/scalers.pkl'
-            if os.path.exists(path_to_scalers):
-                with open(path_to_scalers, 'rb') as f:
-                    scalers = pickle.load(f)
-                scaler = scalers[dt_class]
-            else:# else: uses the scaler created in the beggining and it gets saved at the end
-                scaler = StandardScaler()
-                scalers[dt_class] = scaler
+            scaler = StandardScaler()
+            X_scaled = scaler.fit_transform(X)
+            scalers[dt_class] = scaler
 
             # Split label into binary columns
             label_binarizer = None
@@ -490,10 +473,10 @@ class MLClassifier(BaseClassifier):
                 all_labels = df['label'].tolist() 
                 y_binary = label_binarizer.fit_transform(df['label'])
 
-            results_folds_rf, micro_averages_rf = self.perform_kfold_training(X, y_binary, dt_class, label_binarizer, all_labels, feature_cols, df.index.values, classifier='Random_Forest')
-            results_folds_kn, micro_averages_kn = self.perform_kfold_training(X, y_binary, dt_class, label_binarizer, all_labels, feature_cols, df.index.values, classifier='KN')
-            # results_folds_gb, micro_averages_gb = self.perform_kfold_training(X_numpy, y_binary, dt_class, label_binarizer, all_labels, feature_cols, df.index.values, classifier='Gradient_Boosting')
-            results_folds_xg, micro_averages_xg = self.perform_kfold_training(X, y_binary, dt_class, label_binarizer, all_labels, feature_cols, df.index.values, classifier='XGBoost')
+            results_folds_rf, micro_averages_rf = self.perform_kfold_training(X_scaled, y_binary, dt_class, label_binarizer, all_labels, feature_cols, df.index.values, classifier='Random_Forest')
+            results_folds_kn, micro_averages_kn = self.perform_kfold_training(X_scaled, y_binary, dt_class, label_binarizer, all_labels, feature_cols, df.index.values, classifier='KN')
+            # results_folds_gb, micro_averages_gb = self.perform_kfold_training(X_scaled, y_binary, dt_class, label_binarizer, all_labels, feature_cols, df.index.values, classifier='Gradient_Boosting')
+            results_folds_xg, micro_averages_xg = self.perform_kfold_training(X_scaled, y_binary, dt_class, label_binarizer, all_labels, feature_cols, df.index.values, classifier='XGBoost')
 
             classifiers_rf[dt_class] = {
                 'results_folds': results_folds_rf,
@@ -543,9 +526,8 @@ class MLClassifier(BaseClassifier):
                     pickle.dump(info, f)
 
         path_to_scaler = f'{FEATURES_DIR}/scalers.pkl'
-        if not os.path.exists(path_to_scaler):
-            with open(path_to_scaler, 'wb') as f:
-                pickle.dump(scalers, f)
+        with open(path_to_scaler, 'wb') as f:
+            pickle.dump(scalers, f)
 
         with open(f'{TRAINING_INFO_DIR}/training_runtimes.pkl', 'wb') as f:
             pickle.dump(self.runtimes, f)
